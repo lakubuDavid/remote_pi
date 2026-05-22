@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Remote Pi — Site
 
-## Getting Started
+Landing page for [Remote Pi](https://github.com/jacobaraujo7/remote_pi) — the
+project that lets you control a Pi coding agent from your phone over an
+end-to-end encrypted channel.
 
-First, run the development server:
+This package ships three static routes:
+
+- `/` — landing (hero, features, quick start, GitHub CTA)
+- `/terms` — Terms of Service
+- `/privacy` — Privacy Policy (LGPD)
+
+Target domain: <https://remote-pi.jacobmoura.work>.
+
+## Stack
+
+- Next.js 16 (App Router) + React 19
+- TypeScript 5 (strict)
+- Tailwind 4 (via `@tailwindcss/postcss`)
+- ESLint 9
+- Package manager: **pnpm**
+
+Dark-only theme; visual identity lives in `../branding/`.
+
+## Commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install   # install deps
+pnpm dev       # dev server at http://localhost:3000
+pnpm build     # production build (SSG)
+pnpm start     # serve the production build
+pnpm lint      # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Layout
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/
+│   ├── layout.tsx              # Root layout: header + main + footer, global metadata
+│   ├── page.tsx                # Landing
+│   ├── icon.svg                # Favicon (served as /icon.svg)
+│   ├── opengraph-image.tsx     # Generated OG image (next/og)
+│   ├── globals.css             # Tailwind + design tokens
+│   ├── terms/page.tsx
+│   └── privacy/page.tsx
+└── components/
+    ├── header.tsx              # Logo + nav
+    ├── footer.tsx              # Terms/Privacy/GitHub + copyright
+    ├── hero.tsx                # Landing hero
+    ├── feature-card.tsx        # Reusable card
+    ├── code-block.tsx          # Snippet block
+    └── legal-shell.tsx         # Shared shell for legal pages
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Conventions
 
-## Learn More
+- **Server components by default** — only opt into `"use client"` when state, events, or hooks are needed.
+- **No backend / API routes** in the MVP. The site is purely presentational.
+- **No analytics, no tracking cookies.** Aligned with the project's privacy posture.
+- **English only** in the MVP. PT-BR is a separate plan if demand appears.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Vercel is the expected target (zero-config for Next.js). Domain wiring is
+handled outside this repo.

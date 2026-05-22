@@ -1,65 +1,243 @@
-import Image from "next/image";
+import { Hero } from "@/components/hero";
+import { FeatureCard } from "@/components/feature-card";
+import { CodeBlock } from "@/components/code-block";
+import { DownloadButtons } from "@/components/download-buttons";
+
+const GITHUB_URL = "https://github.com/jacobaraujo7/remote_pi";
+
+const features = [
+  {
+    title: "QR-code pairing",
+    description:
+      "One-time QR scan to pair phone and Pi. Devices authenticate each other with Ed25519 challenge-response — no accounts, no email.",
+    icon: <ShieldIcon />,
+  },
+  {
+    title: "Works with your existing Pi",
+    description: (
+      <>
+        One command in any project:{" "}
+        <code className="rounded bg-bg/60 px-1 py-0.5 font-mono text-xs text-fg">
+          /remote-pi
+        </code>{" "}
+        spins up the bridge and prints the pairing QR.
+      </>
+    ),
+    icon: <TerminalIcon />,
+  },
+  {
+    title: "Multi-agent mesh",
+    description:
+      "Local UDS broker lets agents talk to each other on the Pi. Your phone is just one more peer on the bus.",
+    icon: <MeshIcon />,
+  },
+  {
+    title: "Open source, self-hostable",
+    description:
+      "MIT licensed. Run your own relay behind a VPN for full confidentiality from the relay operator — same protocol, same client.",
+    icon: <SparkIcon />,
+  },
+];
+
+const quickStartCode = `# 1. Install the Pi extension on your Pi agent host
+pi install npm:remote-pi
+
+# 2. Pair your phone:
+/remote-pi pair
+
+# 3. Scan the QR code with the Remote Pi app on your phone.
+
+#Done — chat with your Pi from anywhere.`;
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      <Hero />
+
+      <section
+        id="get-the-app"
+        aria-labelledby="get-the-app-heading"
+        className="border-b border-border-soft"
+      >
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center sm:py-20">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              Get the app
+            </p>
+            <h2
+              id="get-the-app-heading"
+              className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Drive your Pi from your phone.
+            </h2>
+            <p className="mx-auto max-w-xl text-pretty text-base leading-relaxed text-muted">
+              Public store releases are on the way. In the meantime, grab the
+              latest Android APK straight from GitHub Releases.
+            </p>
+          </div>
+          <DownloadButtons />
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="features-heading"
+        className="border-b border-border-soft"
+      >
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <div className="mb-12 flex flex-col gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              Why Remote Pi
+            </p>
+            <h2
+              id="features-heading"
+              className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
             >
-              Learning
-            </a>{" "}
-            center.
+              Built for people who pair-program with their Pi.
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature) => (
+              <FeatureCard
+                key={feature.title}
+                title={feature.title}
+                description={feature.description}
+                icon={feature.icon}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="quick-start"
+        aria-labelledby="quick-start-heading"
+        className="border-b border-border-soft"
+      >
+        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+          <div className="flex flex-col gap-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              Quick start
+            </p>
+            <h2
+              id="quick-start-heading"
+              className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
+            >
+              Three steps from zero to remote.
+            </h2>
+            <p className="text-base leading-relaxed text-muted">
+              No accounts, no email, no SaaS sign-up. Install the extension on
+              the machine running your coding agent, run one command, scan a QR
+              code, and you&apos;re paired.
+            </p>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 w-fit items-center justify-center rounded-full border border-border-soft px-5 text-sm font-medium text-fg transition-colors hover:border-fg/40"
+            >
+              Read the full guide on GitHub →
+            </a>
+          </div>
+          <CodeBlock code={quickStartCode} label="On your Pi" language="bash" />
+        </div>
+      </section>
+
+      <section aria-labelledby="cta-heading">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 py-20 text-center">
+          <h2
+            id="cta-heading"
+            className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
+          >
+            Ready to remote your Pi?
+          </h2>
+          <p className="max-w-xl text-pretty text-base leading-relaxed text-muted">
+            Remote Pi is in active MVP. Read the source, file issues, or
+            self-host the relay — everything is on GitHub.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-6 text-sm font-semibold text-black transition-opacity hover:opacity-90"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            Read the docs on GitHub
           </a>
         </div>
-      </main>
-    </div>
+      </section>
+    </>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M12 3 4 6v6c0 4.5 3.4 8.4 8 9 4.6-.6 8-4.5 8-9V6l-8-3z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+function TerminalIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="m7 9 3 3-3 3" />
+      <path d="M13 15h4" />
+    </svg>
+  );
+}
+
+function MeshIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="6" r="2" />
+      <circle cx="18" cy="6" r="2" />
+      <circle cx="12" cy="18" r="2" />
+      <path d="M7.6 7.5 11 16.4M16.4 7.5 13 16.4M8 6h8" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" />
+    </svg>
   );
 }

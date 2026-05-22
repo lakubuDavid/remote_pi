@@ -19,6 +19,7 @@ PNGs derivados gerados via ferramenta externa quando necessário.
 | `logo-foreground.svg` | π + bolinha em fundo transparente | iOS app icon (com background separado), Android adaptive icon foreground layer |
 | `logo-background.svg` | Preto sólido 1024×1024 | Android adaptive icon background layer |
 | `logo-monochrome.svg` | Silhueta branca completa | Android 13+ themed icon (sistema colore conforme wallpaper) |
+| `banner.svg` / `banner.png` | Banner 1280×640 horizontal — π à esquerda + título + tagline + comando install + URL | Card de pacote pi.dev (`pi.image` no package.json), README hero do GitHub, social preview |
 
 Todos os arquivos: **1024×1024** viewBox, safe zone Android-compatível (~66% central).
 

@@ -1,42 +1,111 @@
-# Remote Pi
+<p align="center">
+  <img src="branding/logo-full.svg" width="140" alt="Remote Pi logo" />
+</p>
 
-Remote control para sessões do [Pi coding agent](https://github.com/earendil-works/pi).
+<h1 align="center">Remote Pi</h1>
 
-Controle sessões Pi locais a partir do celular via QR code, com end-to-end encryption.
+<p align="center">
+  Control your <a href="https://github.com/earendil-works/pi">Pi coding agent</a> from your phone.
+  Pair with a one-time QR code and chat with your local agent — even when you're away from your computer.
+</p>
 
-## Por quê
+---
 
-O Pi é o concorrente open source mais relevante do Claude Code. Ele já tem
-RPC mode, SDK público e sessões persistentes em JSONL — mas falta uma forma
-boa de usar do celular. Remote Pi preenche esse gap, no estilo do que a
-Anthropic fez com o Claude Code Remote Control oficial, mas para o Pi.
+## Links
 
-## Arquitetura
+- **Official site** — <https://remote-pi.jacobmoura.work>
+- **Package documentation** — <https://pi.dev/packages/remote-pi?name=remote-pi>
+- **GitHub** — <https://github.com/jacobaraujo7/remote_pi>
 
-```
-App Flutter ──wss/E2E──► Relay (Rust) ◄──wss/E2E── Pi extension (Node)
-                                                          │
-                                                  Pi process local
-```
+### Downloads
 
-- **Pareamento** via QR code, persiste em Keychain (celular) e `~/.pi/remote/` (Mac)
-- **E2E encryption** com Curve25519 + ChaCha20-Poly1305 (libsodium / Noise)
-- **Relay nunca lê plaintext** — só roteia ciphertext
-- **Forward secrecy**: ECDH efêmero a cada reconexão
+| Platform | Status |
+|---|---|
+| Google Play (Android) | _Coming soon_ |
+| App Store (iOS) | _Coming soon_ |
+| APK (sideload, Android) | [GitHub Releases](https://github.com/jacobaraujo7/remote_pi/releases) |
 
-## Pacotes
+## What's in this repo
 
-| Pacote | Stack | Função |
+| Package | Stack | Role |
 |---|---|---|
-| [`app/`](./app) | Flutter (iOS/Android) | Cliente mobile |
-| [`pi-extension/`](./pi-extension) | Node + TypeScript | Extensão Pi com `/remote-pi` |
-| [`relay/`](./relay) | Rust + Tokio | Servidor WebSocket stateless |
-| [`site/`](./site) | NextJS | Landing page |
+| [`app/`](./app) | Flutter (iOS / Android) | Mobile client |
+| [`pi-extension/`](./pi-extension) | Node + TypeScript | Pi extension exposing `/remote-pi` |
+| [`relay/`](./relay) | Rust + Tokio | Stateless WebSocket relay |
+| [`site/`](./site) | NextJS | Landing page + legal pages |
+
+## Architecture
+
+```
+Flutter app ──wss──► Relay (Rust) ◄──wss── Pi extension (Node)
+                                                  │
+                                           Local Pi process
+                                                  │
+                                           UDS broker (local mesh)
+                                                  │
+                                           Other agents on the same machine
+```
+
+- **Pairing** via short-lived QR code; peers persisted in Keychain (mobile) and `~/.pi/remote/` (desktop)
+- **TLS in transit** on the WebSocket connection
+- **Ed25519 pairing authentication** — only paired devices can route messages through your peer slot on the relay (challenge-response handshake)
+- **The relay forwards opaque ciphertext** as far as routing is concerned, but the payload itself is **not end-to-end encrypted in the current version** — see [`relay/README.md`](./relay/README.md) for the security trade-offs
+
+## Local agent mesh
+
+When multiple Pi agents run on the same machine, they discover each other through
+a **Unix Domain Socket broker** managed by the extension. One agent wins the
+leader election and binds the socket; the others connect as clients. After that,
+any agent can send a message or make a request to any other agent by name —
+no relay, no network, no extra config.
+
+Two LLM-facing tools are exposed in the Pi chat:
+
+- `agent_send` — fire-and-forget message to another local agent
+- `agent_request` — request/response with timeout
+
+This lets you set up local multi-agent workflows (e.g. a `backend` agent asks a
+`frontend` agent for help) entirely on your machine, in parallel with the remote
+mobile pairing.
+
+## Relay
+
+A free community relay is available at:
+
+```
+wss://relay-rp1.jacobmoura.work
+```
+
+It's enough to get started, but the relay operator can see the content of your
+messages and is a single point of trust for routing. **For sensitive work, we
+strongly recommend running your own relay** — it's a single Docker command and
+the only thing your traffic ever touches is your own infrastructure.
+
+Full security trade-offs and the self-hosting guide live in
+**[`relay/README.md`](./relay/README.md)**.
+
+## Getting started
+
+Install the Pi extension in any project where Pi runs:
+
+```bash
+pi install npm:remote-pi
+```
+
+Then in the Pi chat, run:
+
+```
+/remote-pi
+```
+
+The setup wizard walks you through agent name, session name, and relay choice,
+then prints a QR code. Scan it with the Remote Pi mobile app and you're paired.
 
 ## Status
 
-Em fase de bootstrap. Acompanhe em [`plan/`](./plan).
+The MVP is functional. Planning notes and roadmap live in [`plan/`](./plan).
 
-## Licença
+## License
 
-A definir.
+License is per-package — see each subproject's `LICENSE` file (the `pi-extension`
+is MIT). A repository-wide license decision is pending.
