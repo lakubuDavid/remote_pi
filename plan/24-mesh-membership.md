@@ -51,13 +51,13 @@ Revisão formal de decisão fixada: `00-decisions.md` linha "Relay stateless" pa
 
 ---
 
-## Decisões a fechar antes da Wave 1
+## Decisões fechadas (2026-05-23, defaults pra Wave 1)
 
-- **Q1 — Periodicidade do polling**. Pi-ext e app precisam descobrir novas versões. Opções: (a) polling fixo 60s; (b) polling adaptativo com backoff; (c) push via WebSocket (relay notifica subscribers de owner_pk_hash). (c) é mais elegante mas adiciona um tipo de control frame novo. Recomendação inicial: (a) 60s + leitura on-demand em momentos chave (boot, reconexão).
-- **Q2 — Retenção de versões antigas**. Guardar histórico ou só última? Recomendação: só última versão por owner_pk_hash (UPSERT). Histórico é nice-to-have pra audit, mas não MVP.
-- **Q3 — Quem inicia o primeiro mesh_versions?** Quando o primeiro device pareia o primeiro Pi, ele cria `version: 1` com 1 membro. OK. Mas e se dois devices do mesmo Owner pareiam Pis diferentes em paralelo sem ainda conhecer mesh_versions? Provável solução: cliente sempre lê antes de escrever; se relay retorna 404, assume versão 0 e cria v1 com seu peer; se outro device fez o mesmo, LWW resolve.
-- **Q4 — Limite de tamanho do blob**. Quantos peers cabem? JSON com 50 peers + nicknames + metadata ≈ ~10KB. SQLite aceita facilmente. Sem cap necessário no MVP, mas talvez cap defensivo em 500 peers.
-- **Q5 — Cliente que perdeu LWW**: detecta como? Cliente sabia "publiquei v18", busca depois e vê v18 com conteúdo diferente do que publicou → "outro device sobrescreveu, vou re-aplicar minha mudança". Loop infinito possível em alta concorrência. Solução simples: aceitar perda silenciosa no MVP, logar warning.
+- **Q1 — Periodicidade do polling**: **60s em foreground** + leitura on-demand em boot, reconexão WS e mutações. Push via WS fica como otimização futura.
+- **Q2 — Retenção de versões**: **só última versão por `owner_pk_hash`** (UPSERT). Sem histórico no MVP.
+- **Q3 — Primeiro mesh_versions**: cliente sempre `GET` antes de `POST`. Se relay retorna `404`, assume `current_version = 0` e publica `version: 1`. Concorrência inicial resolve via LWW (último vence).
+- **Q4 — Limite de tamanho**: **cap defensivo de 500KB** no relay (responde `413 Payload Too Large` se body acima). Cliente não impõe cap de N peers — confia que 500KB é folga absoluta na prática.
+- **Q5 — Cliente que perdeu LWW**: detecta comparando blob publicado com blob retornado no próximo poll. **Loga warning + aceita a perda silenciosamente.** Sem retry automático no MVP.
 
 ---
 
@@ -251,6 +251,38 @@ Single-table, UPSERT por `owner_pk_hash`. Simples, atômico, suficiente.
 - Rename de peer reflete em outro device do mesmo Apple ID após ~60s
 - Falha de rede em publish: muda local, fica pendente, retenta no próximo poll
 - `flutter test` + `flutter analyze` zero issues
+
+### Wave 2D — Pi-extension: multi-channel broadcast (2026-05-23)
+
+Decisão arquitetural fechada nesta sessão: revisar 08-Q2 do registry em direção complementar à Wave 2C. Agora o **pi-extension** passa a suportar **N owners conectados simultaneamente**, todos compartilhando a mesma sessão do agent.
+
+Razão: usuário não tem requisito de privacidade entre Owners pareados no mesmo Mac. Modelo mental "rede mesh assistindo a sessão" é coerente com a visão PC-mesh. Catch-22 atual ("pra parear novo, precisa stop, mas stop desconecta o atual") fica resolvido.
+
+**Mudanças**:
+- `_appPeerId: string | null` → `_activePeers: Map<string, PeerChannel>` em pi-extension/src/index.ts
+- State machine: `idle` → `started`. Remove estado `paired` (vira métrica derivada `_activePeers.size > 0`)
+- `_cmdPair`: sempre permite gerar QR (sem rejeição quando há outro active)
+- `_cmdList`: mostra status `online/offline` por peer (não mais "active")
+- `_handleSessionSync`: recebe sender channel como parâmetro; responde via channel que mandou (não via singleton)
+- Helpers: `broadcastToActive(msg)` + `sendToSpecific(peerId, msg)`
+- Auto-listener: roteia mensagens recebidas pro channel certo via sender peer_id no envelope
+- `_messageBuffer` continua compartilhado (estado da sessão é global, todos os owners veem mesmo histórico)
+
+**Trade-offs aceitos explicitamente**:
+- Race em digitação simultânea — agent processa em ordem de chegada
+- Conflito de aprovação — primeiro a aprovar vence
+- Sem indicador de origem nas mensagens (pode adicionar no futuro via metadata opcional se virar dor)
+- Owner offline durante sessão — perde o que aconteceu, mirror cache recupera na reconexão
+
+**Critério de aceite**:
+- Dois Owners diferentes pareados, ambos conectados simultâneo
+- Pi-ext envia `agent_chunk` → ambos os apps renderizam paralelo
+- Owner novo conecta → recebe history completo via session_sync
+- `/remote-pi pair` gera QR mesmo se já tem owner conectado
+- `/remote-pi revoke <id>` desativa só aquele owner; resto continua
+- Testes cobrem broadcast multi-channel + sender-routing do session_sync
+
+---
 
 ### Wave 3 — Pi-extension: self-revoke
 
