@@ -17,6 +17,14 @@ export function SiteFooter() {
             Privacy Policy
           </Link>
           <a
+            href={`${GITHUB_URL}/blob/main/PROTOCOL.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-fg"
+          >
+            Protocol
+          </a>
+          <a
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"

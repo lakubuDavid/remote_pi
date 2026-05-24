@@ -1,8 +1,31 @@
 # Plano 03 — Protocolo de mensagens
 
+> ## ⚠️ Atualização 2026-05-24 — protocolo evoluiu significativamente
+>
+> Este plano descreve o protocolo do **MVP inicial** e continua valendo como
+> referência histórica das decisões de bootstrap. Para o **estado atual** do
+> protocolo (wire format consolidado + ACK + cross-PC + mesh + trust model),
+> consulte **[`PROTOCOL.md`](../PROTOCOL.md)** no raiz do repositório — é a
+> documentação canônica user-facing.
+>
+> **Sumário do que mudou desde o MVP** (ver "Mudanças pós-MVP" abaixo):
+>
+> - ACK protocol event-driven (`received | busy | denied | timeout`) — `plan/25-pc-mesh-bootstrap.md` Wave 0
+> - Cross-PC envelope routing via `pi_envelope` / `pi_envelope_in` + prefix `<pc>:<peer>` — `plan/25` Waves A + C
+> - `transport_error` como envelope normal (não frame WS custom) — `plan/25` ACK section
+> - `mesh_versions` assinada (Ed25519) persistida no relay (SQLite) — `plan/24-mesh-membership.md`
+> - `broker_remote` + `injectFromRemote` + anti-spoof prefix matching — `plan/25` Waves B + C
+> - Rollback do Noise framing — protocolo trafega **plaintext em TLS**, não E2E. Ver `PROTOCOL.md` "Trust model"
+> - Pi-key passou a viver no Keychain do sistema (macOS Keychain / libsecret Linux / Credential Manager Windows) via `@napi-rs/keyring` — `plan/27` Wave E1
+> - Owner-key cross-device via iCloud Keychain / Android Block Store — `plan/23-owner-key-sync.md`
+>
+> **O envelope core continua igual** (`{from, to, id, re, body}` em JSONL com UUIDv7) — todas as evoluções foram aditivas sobre essa primitiva.
+
+---
+
 Objetivo: definir e implementar (em stubs) o protocolo de mensagens trafegado entre **app** (Flutter) e **pi-extension** (Node) através do **relay** (Rust). O relay vê só o envelope externo opaco; toda semântica vive no envelope interno entre app e extensão.
 
-**Este plano não cobre criptografia.** O envelope externo terá um campo `ct` (ciphertext), mas neste plano `ct` é um placeholder em base64 do JSON em claro. A cifra real (Curve25519 + ChaCha20-Poly1305 / Noise) entra no plano 04 (pareamento). Isso permite implementar e testar o **shape** do protocolo sem bloquear em crypto.
+**[OBSOLETO pós-MVP]** ~~Este plano não cobre criptografia. O envelope externo terá um campo `ct` (ciphertext), mas neste plano `ct` é um placeholder em base64 do JSON em claro. A cifra real (Curve25519 + ChaCha20-Poly1305 / Noise) entra no plano 04 (pareamento). Isso permite implementar e testar o **shape** do protocolo sem bloquear em crypto.~~ — **Decisão revisada**: o roll-out do Noise framing foi revertido. Protocolo opera plaintext sobre TLS pro relay; relay vê envelopes em claro. Trade-off documentado em `PROTOCOL.md` "Trust model" + memory `project_no_e2e_yet`. E2E payload encryption fica como evolução futura aditiva.
 
 ---
 
@@ -30,6 +53,64 @@ Este é o primeiro plano que **toca múltiplos subprojetos simultaneamente** —
 | Limite de tamanho | 1 MiB por mensagem inner (decidido aqui) | Suficiente pra diffs gordos; relay rejeita maior |
 | Erros | Tipo `error` com `code`, `message`, opcional `in_reply_to` | |
 | Heartbeat | Qualquer lado pode iniciar `ping` após 25s de idle; outro responde `pong` | WebSocket idle timeout em CDN típico é 60s. Bidirecional para detectar morte em qualquer ponta |
+
+---
+
+## Mudanças pós-MVP (2026-05-24)
+
+Decisões deste plano que evoluíram após implementação. Estado atual em [`PROTOCOL.md`](../PROTOCOL.md); detalhes históricos abaixo.
+
+### Envelope externo `{peer, ct}` → simplificado
+
+O envelope externo `{peer, ct}` foi pensado pra envelopar payloads cifrados (Noise). Como E2E foi revertido, o relay hoje trabalha com envelopes plaintext diretamente. O wire format atual entre Pi e relay continua sendo JSONL, mas sem a camada `ct` opaca.
+
+### Cross-PC routing — frames novos no protocolo Pi↔Relay
+
+Adicionados após `plan/25` Wave A:
+
+- `pi_envelope` (Pi-A → Relay): solicita forward pra outro Pi do mesmo Owner
+- `pi_envelope_in` (Relay → Pi-B): entrega o envelope com `from_pc` autenticado
+- Erros (`offline`, `not_authorized`, `bad_envelope`) chegam como **envelope normal** com `body.type = "transport_error"`, `from = "_relay"`. Não há frame WS custom de erro
+
+Detalhes: `plan/25-pc-mesh-bootstrap.md` "Wave A" + `PROTOCOL.md` "Cross-PC routing".
+
+### ACK protocol — receipt sinalization
+
+Tools `agent_send` e `agent_request` consolidadas em apenas `agent_send`, que aguarda ACK do wrapper TS do peer destino (não custa token, não exige turn de LLM):
+
+| Status | Significado |
+|---|---|
+| `received` | Peer livre; mensagem enfileirada pro LLM |
+| `busy` | Peer em turn; mensagem descartada; sender retry |
+| `denied` | Peer recusou (futuro: blacklist) |
+| `timeout` | ACK não chegou em 5s |
+
+Reply de conteúdo continua assíncrono (outro `send` com `re`). Detalhes: `plan/25` "Wave 0" + `PROTOCOL.md` "ACK protocol".
+
+### Naming cross-PC com prefix `<pc>:<peer>`
+
+Envelope `to` pode ser:
+- `agent-2` (local; resolvido via broker UDS local)
+- `casa:agent-2` (remoto; handoff pra broker_remote → relay forward)
+
+Broker local strip o prefix antes de injetar pra sessão local. Anti-spoof: `envelope.from` prefix deve bater com `from_pc` autenticado pelo relay.
+
+### Mesh membership (plan/24)
+
+Relay deixou de ser stateless. Persiste blobs `mesh_versions` assinados pela Owner-key (SQLite + Ed25519 + version monotônica + LWW). Detalhes: `plan/24-mesh-membership.md` + `PROTOCOL.md` "Mesh membership".
+
+### Identity storage
+
+- **Pi-key**: era `~/.pi/remote/identity.json` em disco; migrada pro Keychain do sistema via `keytar` (plan inicial) e depois `@napi-rs/keyring` (plan/27 Wave E1) pra cross-platform real (macOS Keychain / libsecret Linux desktop / Credential Manager Windows). Fallback headless: arquivo `0600` + warning
+- **Owner-key**: nasceu como secret no app; migrada pro iOS Keychain (sync iCloud) / Android Block Store (sync Google) via `plan/23-owner-key-sync.md`. Habilita Owner-key cross-device — fundação do PC-mesh
+
+### Pareamento
+
+Schema do `pair_ok` ganhou campos opcionais (`harness: {name, version}`, `hostname: string`) — `plan/27` Wave A. Backward-compat: campos opcionais, default sensato no app.
+
+### Wrappers de harness (direção futura)
+
+Decidido em `plan/27` Wave B: suporte a Claude Code, OpenCode etc futuro virá via **wrappers** (`remote-pi claude`, `remote-pi opencode`) que spawnam o harness e registram como peer no broker UDS local. **Não** via broker-gateway centralizado. Sem implementação agora — direção registrada.
 
 ---
 

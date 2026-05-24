@@ -14,13 +14,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteTagline =
+  "Remote Pi — A mesh of coding agents across every machine you work from";
 const siteDescription =
-  "Control your Pi coding agent from your phone. End-to-end encrypted, multi-agent mesh, open source.";
+  "A mesh of coding agents on every machine you work from. Your phone authenticates new peers; the agents talk to each other. Open source, self-hostable.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://remote-pi.jacobmoura.work"),
   title: {
-    default: "Remote Pi — Control your Pi coding agent from your phone",
+    default: siteTagline,
     template: "%s · Remote Pi",
   },
   description: siteDescription,
@@ -28,21 +30,22 @@ export const metadata: Metadata = {
   authors: [{ name: "Flutterando", url: "https://flutterando.com.br" }],
   keywords: [
     "Remote Pi",
+    "agent mesh",
+    "coding agents",
     "Pi coding agent",
-    "remote agent control",
-    "end-to-end encryption",
-    "multi-agent mesh",
+    "cross-machine coding",
+    "self-hostable relay",
   ],
   openGraph: {
     type: "website",
     url: "https://remote-pi.jacobmoura.work",
-    title: "Remote Pi — Control your Pi coding agent from your phone",
+    title: siteTagline,
     description: siteDescription,
     siteName: "Remote Pi",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Remote Pi — Control your Pi coding agent from your phone",
+    title: siteTagline,
     description: siteDescription,
   },
 };

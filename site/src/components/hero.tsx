@@ -22,9 +22,9 @@ export function Hero() {
             Remote Pi
           </h1>
           <p className="max-w-2xl text-pretty text-lg leading-relaxed text-muted sm:text-xl">
-            Control your Pi coding agent from your phone. QR-code pairing, a
-            local multi-agent mesh, and a relay you can self-host. Fully open
-            source.
+            Your coding agents talk to each other across every machine you work
+            from. Your phone is just the authenticator — scan a QR once and the
+            mesh runs by itself. Fully open source.
           </p>
         </div>
         <div className="mt-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">

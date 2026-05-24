@@ -29,14 +29,16 @@ export default function DocsPage() {
       sidebar={<DocsToc />}
       intro={
         <p>
-          Extend the{" "}
+          Remote Pi is a mesh for coding agents. Agents on the same machine
+          talk through a local UDS broker; agents on different machines reach
+          each other through an open-source relay; your phone authenticates
+          new peers into the mesh and stays in sync across iOS and Android.
+          The first supported harness is the{" "}
           <a className="text-accent underline" href={PI_URL} target="_blank" rel="noopener noreferrer">
             Pi coding agent
-          </a>{" "}
-          with two superpowers: agents that talk to each other on the same
-          machine, and a mobile app that drives Pi from your phone.{" "}
-          <InlineCode>/remote-pi</InlineCode> is a single slash command that
-          wires both at once — run it once and you&apos;re done.
+          </a>
+          ; <InlineCode>/remote-pi</InlineCode> is the single slash command
+          that wires everything up.
         </p>
       }
     >
@@ -46,50 +48,58 @@ export default function DocsPage() {
         <p>Then in any Pi terminal:</p>
         <CodeBlock code="/remote-pi" label="In Pi" language="text" />
         <p>
-          The first run shows a short interactive wizard (agent name, default
-          session, whether to auto-start the relay). On every following run,{" "}
-          <InlineCode>/remote-pi</InlineCode> joins the local agent session and
+          The first run shows a short interactive wizard (agent name, whether
+          to use the relay, whether to enable daemon mode). On every following
+          run, <InlineCode>/remote-pi</InlineCode> joins the local mesh and
           starts the relay automatically — no extra typing.
         </p>
 
         <DocsSubsection id="agent-network-30s" title="Try the agent network in 30 seconds">
           <p>
-            Open <strong className="text-fg">two</strong> Pi terminals in the
-            same directory and run <InlineCode>/remote-pi</InlineCode> in each.
-            Both join the same session. Now just talk to the LLM — it has the
-            tools.
+            Open <strong className="text-fg">two</strong> Pi terminals in two{" "}
+            <strong className="text-fg">different</strong> directories — one
+            Pi process per cwd is enforced by a lock. Run{" "}
+            <InlineCode>/remote-pi</InlineCode> in each and both join the same
+            local mesh automatically (every machine has a single session
+            named <InlineCode>local</InlineCode>). Now just talk to the LLM —
+            it has the tools.
           </p>
           <p>
             In terminal A (say it ended up named <InlineCode>agent-A</InlineCode>):
           </p>
           <CodeBlock
-            code="Who else is connected in our agent session? List them."
+            code="List the other agents available."
             label="agent-A · prompt"
             language="text"
           />
           <p>
-            The LLM calls <InlineCode>agent_send</InlineCode> to{" "}
-            <InlineCode>broker</InlineCode> with{" "}
-            <InlineCode>{`{ type: "list_peers" }`}</InlineCode> and replies with
-            the names it sees.
+            The LLM calls{" "}
+            <InlineCode>list_peers()</InlineCode> and gets back something
+            like{" "}
+            <InlineCode>{`{ peers: ["agent-B"] }`}</InlineCode> (synchronous,
+            ms-latency).
           </p>
           <p>Then, still in terminal A:</p>
           <CodeBlock
-            code="Send a ping to agent-B and wait for a reply."
+            code="Send a ping to agent-B."
             label="agent-A · prompt"
             language="text"
           />
           <p>
-            Pi calls{" "}
-            <InlineCode>{`agent_request({ to: "agent-B", body: { type: "ping" } })`}</InlineCode>.
-            The message arrives in terminal B as a user-facing turn — terminal
-            B&apos;s LLM answers, and the reply lands back in terminal A. Two
-            agents, one prompt each, full round trip.
+            The LLM calls{" "}
+            <InlineCode>{`agent_send({ to: "agent-B", body: { type: "ping" } })`}</InlineCode>{" "}
+            and immediately gets back{" "}
+            <InlineCode>{`{ status: "received" }`}</InlineCode> (the ACK). The
+            message lands in terminal B&apos;s inbox; its LLM sees the new
+            envelope on its next turn and decides whether to reply by calling{" "}
+            <InlineCode>{`agent_send({ to: "agent-A", re: "<id>", body: ... })`}</InlineCode>.
+            Agent A then sees the reply on a future turn — fully event-driven,
+            nothing blocks.
           </p>
           <p className="text-sm">
             (Replace <InlineCode>agent-B</InlineCode> with whatever name
             terminal B reports for itself — the wizard&apos;s default is the
-            directory name plus a <InlineCode>#N</InlineCode> suffix on
+            parent folder name with a <InlineCode>#N</InlineCode> suffix on
             collision.)
           </p>
         </DocsSubsection>
@@ -97,44 +107,72 @@ export default function DocsPage() {
 
       <DocsSection id="what-it-does" title="What it does">
         <p>
-          Remote Pi adds two independent layers on top of Pi. You can use
-          either, or both.
+          Remote Pi sits on top of Pi (the first supported harness) and adds
+          two independent layers. You can use either, or both.
         </p>
 
-        <DocsSubsection id="agent-network-layer" title="1) Agent network (local, same machine)">
+        <DocsSubsection id="agent-network-layer" title="1) Agent network (same machine and across PCs)">
           <p>
-            Several Pi instances running side-by-side in different terminals can
-            discover each other and exchange messages. Each instance is a peer
-            in a named <em>session</em> and gets two tools the LLM can call
-            directly:
+            Agents running side-by-side in different terminals discover each
+            other and exchange messages. Each agent is a peer in the local
+            mesh and gets three tools the LLM can call directly:
           </p>
           <ul className="ml-6 list-disc space-y-2">
-            <li><InlineCode>agent_send</InlineCode> — fire-and-forget message to another agent</li>
-            <li><InlineCode>agent_request</InlineCode> — send and await a reply (correlated by message id)</li>
+            <li>
+              <InlineCode>list_peers()</InlineCode> — synchronous, returns{" "}
+              <InlineCode>{`{ peers: string[] }`}</InlineCode>. Locals plus
+              cross-PC entries prefixed with the source PC&apos;s label (e.g.{" "}
+              <InlineCode>MacMini:agent-1</InlineCode>).
+            </li>
+            <li>
+              <InlineCode>agent_send({`{ to, body, re? }`})</InlineCode> —
+              unicast with ACK. Returns{" "}
+              <InlineCode>{`{ status: "received" | "busy" | "denied" | "timeout" | "sent" }`}</InlineCode>{" "}
+              within ~5s. Set <InlineCode>re</InlineCode> when replying to an
+              earlier message.
+            </li>
+            <li>
+              <InlineCode>agent_request</InlineCode> —{" "}
+              <strong className="text-fg">deprecated</strong>. Synchronous
+              send-and-await wrapper kept for backward compatibility; emits a
+              warning on first call. New agents use{" "}
+              <InlineCode>agent_send</InlineCode> and observe the inbox in a
+              future turn.
+            </li>
           </ul>
           <p>
-            This is purely local: the agents talk over a Unix domain socket at{" "}
-            <InlineCode>~/.pi/remote/sessions/&lt;session-name&gt;/broker.sock</InlineCode>.
-            No network involved. Useful for splitting work across roles
+            On the same machine, peers talk through a Unix domain socket at{" "}
+            <InlineCode>~/.pi/remote/sessions/local/broker.sock</InlineCode>{" "}
+            — no network involved. Across machines, the same{" "}
+            <InlineCode>agent_send</InlineCode> routes through the relay
+            automatically: every PC paired to the same Owner key forms one
+            logical mesh, and a remote peer is addressed verbatim by its
+            prefixed name (e.g.{" "}
+            <InlineCode>{`agent_send({ to: "MacMini:agent-1", ... })`}</InlineCode>).
+            Useful for splitting work across roles
             (<InlineCode>backend</InlineCode>, <InlineCode>frontend</InlineCode>,{" "}
             <InlineCode>tests</InlineCode>, <InlineCode>orchestrator</InlineCode>, …)
-            and letting them coordinate.
+            and letting them coordinate, whether they live on the same box or
+            on machines that only meet on the relay.
           </p>
           <p>
-            The first agent to enter a session becomes the{" "}
+            On any given machine, the first agent in the session becomes the{" "}
             <em>leader</em> (hosts the broker); the rest are{" "}
             <em>followers</em>. If the leader exits, a follower automatically
             takes over — the failover is invisible to the LLMs.
           </p>
         </DocsSubsection>
 
-        <DocsSubsection id="mobile-app-layer" title="2) Mobile app (over the relay)">
+        <DocsSubsection id="mobile-app-layer" title="2) Mobile control plane (authenticator + remote)">
           <p>
-            The companion mobile app lets you send prompts to Pi and read its
-            responses from your phone. The phone and the Pi process find each
-            other through a <strong className="text-fg">relay</strong>: a small
-            WebSocket server that ferries messages between them. Pairing is
-            one-time and per device, via QR code.
+            The mobile app is the authenticator and the remote control. You
+            scan a QR once to bring a new machine into your mesh (or to add a
+            new phone to your Owner key); from that point on the apps and PCs
+            coordinate over the same{" "}
+            <strong className="text-fg">relay</strong> — a small WebSocket
+            server that ferries messages between paired peers. Multiple phones
+            paired to the same Owner key stay in sync; multiple Owners can
+            pair the same machine without colliding.
           </p>
           <p>
             <strong className="text-fg">Trust model (current MVP).</strong>{" "}
@@ -154,7 +192,18 @@ export default function DocsPage() {
               The relay
             </a>{" "}
             below for a self-host guide. Restoring per-message E2E encryption
-            is on the roadmap.
+            is on the roadmap.{" "}
+            <a
+              className="text-accent underline"
+              href={`${GITHUB_URL}/blob/main/PROTOCOL.md`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              PROTOCOL.md
+            </a>{" "}
+            is the source of truth for the wire format, identity model, ACK
+            semantics, and failure modes — read it when this page disagrees
+            with itself.
           </p>
           <p>App downloads:</p>
           <ul className="ml-6 list-disc space-y-2">
@@ -190,8 +239,8 @@ export default function DocsPage() {
         <p>
           The extension self-registers the <InlineCode>/remote-pi</InlineCode>{" "}
           slash command and deploys an agent skill that teaches the LLM how to
-          use <InlineCode>agent_send</InlineCode> /{" "}
-          <InlineCode>agent_request</InlineCode>.
+          use <InlineCode>list_peers</InlineCode> /{" "}
+          <InlineCode>agent_send</InlineCode>.
         </p>
         <p>To verify:</p>
         <CodeBlock code="/remote-pi config" label="In Pi" language="text" />
@@ -202,25 +251,17 @@ export default function DocsPage() {
         </p>
         <p>
           <strong className="text-fg">Planning to use daemon mode?</strong>{" "}
-          Also install the package globally via npm — that puts the{" "}
-          <InlineCode>remote-pi</InlineCode> and{" "}
-          <InlineCode>pi-supervisord</InlineCode> binaries on your PATH. The
-          two installs are independent and can coexist:
-        </p>
-        <CodeBlock
-          code="npm install -g remote-pi"
-          label="Optional · for daemon mode"
-          language="bash"
-        />
-        <p>
-          <InlineCode>pi install npm:remote-pi</InlineCode> exposes the
-          extension to the Pi runtime. <InlineCode>npm install -g remote-pi</InlineCode>{" "}
-          additionally drops two CLI binaries on your PATH that the daemon
-          flow needs. See{" "}
+          Run <InlineCode>/remote-pi install</InlineCode> from inside Pi when
+          you&apos;re ready — it installs the user-level supervisor service
+          (launchd on macOS, <InlineCode>systemd --user</InlineCode> on Linux)
+          and symlinks the <InlineCode>remote-pi</InlineCode> +{" "}
+          <InlineCode>pi-supervisord</InlineCode> CLIs into{" "}
+          <InlineCode>~/.local/bin/</InlineCode>. The setup wizard also
+          offers to do this on first run. See{" "}
           <a href="#daemon-mode" className="text-accent underline">
             Daemon mode
           </a>{" "}
-          for the rest.
+          for the full flow.
         </p>
       </DocsSection>
 
@@ -236,37 +277,44 @@ export default function DocsPage() {
           rows={[
             [
               <>First run (no <InlineCode>.pi/remote-pi/config.json</InlineCode>)</>,
-              "Interactive wizard → saves config → joins agent session → starts relay (if you opted in)",
+              "Interactive wizard → saves config → joins local mesh → starts relay (if you opted in)",
             ],
             [
               "Returning user, auto-start enabled",
-              "Joins agent session + starts relay automatically, then prints status",
+              "Joins local mesh + starts relay automatically, then prints status",
             ],
             [
               "Returning user, auto-start disabled",
-              "Prints status only; join/relay must be run manually",
+              "Prints status only; mesh/relay must be re-enabled via /remote-pi setup",
             ],
           ]}
         />
         <p>The wizard asks three questions:</p>
         <ol className="ml-6 list-decimal space-y-2">
           <li>
-            <strong className="text-fg">Agent name</strong> — how other agents
-            will address you in <InlineCode>agent_send</InlineCode> /{" "}
-            <InlineCode>agent_request</InlineCode>. Defaults to the directory
-            name.
+            <strong className="text-fg">Agent name</strong> — how other peers
+            address you in <InlineCode>list_peers()</InlineCode> and{" "}
+            <InlineCode>agent_send</InlineCode>. Defaults to the parent folder
+            of the current cwd, with a <InlineCode>#N</InlineCode> suffix on
+            collision.
           </li>
           <li>
-            <strong className="text-fg">Default session</strong> — the name of
-            the agent-network room for this directory. Multiple terminals in
-            the same directory join the same session.
+            <strong className="text-fg">Use the relay on this terminal?</strong>{" "}
+            — <InlineCode>Yes</InlineCode> connects this Pi to the remote
+            mesh (mobile app + cross-PC peers via the relay).{" "}
+            <InlineCode>No</InlineCode> keeps it local-only (agent network on
+            the same machine, no mobile or cross-PC reach).
           </li>
           <li>
-            <strong className="text-fg">Auto-start relay (for mobile app access)?</strong>{" "}
-            — <InlineCode>Yes</InlineCode> if you want{" "}
-            <InlineCode>/remote-pi</InlineCode> to also connect to the relay so
-            the mobile app can reach this Pi. <InlineCode>No</InlineCode> for
-            local-only use (agent network without mobile access).
+            <strong className="text-fg">Enable daemon mode?</strong> —{" "}
+            <InlineCode>Yes</InlineCode> installs the supervisor service
+            (launchd/systemd <InlineCode>--user</InlineCode>) and symlinks the{" "}
+            <InlineCode>remote-pi</InlineCode> +{" "}
+            <InlineCode>pi-supervisord</InlineCode> CLIs into{" "}
+            <InlineCode>~/.local/bin/</InlineCode> so this folder can run as a
+            24/7 background agent. <InlineCode>No</InlineCode> skips the
+            service install; you can opt in later with{" "}
+            <InlineCode>/remote-pi install</InlineCode>.
           </li>
         </ol>
         <p>
@@ -275,14 +323,18 @@ export default function DocsPage() {
       </DocsSection>
 
       <DocsSection id="pairing" title="Pairing a mobile device">
-        <p>
-          Once the relay is up (<InlineCode>/remote-pi relay status</InlineCode>{" "}
-          shows <InlineCode>started</InlineCode> or <InlineCode>paired</InlineCode>):
-        </p>
+        <p>You can call <InlineCode>/remote-pi pair</InlineCode> directly:</p>
         <CodeBlock code="/remote-pi pair" label="In Pi" language="text" />
         <p>
-          A QR code is printed in the terminal. Scan it with the Remote Pi
-          mobile app. Pairing is{" "}
+          If mesh and relay aren&apos;t running but a config exists,{" "}
+          <InlineCode>pair</InlineCode> auto-bootstraps them before printing
+          the QR. If no config exists yet (first time on this folder), the
+          command tells you to run <InlineCode>/remote-pi</InlineCode> first
+          to go through the wizard. The QR is only printed once the relay is
+          actually connected.
+        </p>
+        <p>
+          Scan the QR with the Remote Pi mobile app. Pairing is{" "}
           <strong className="text-fg">per machine</strong> — once a device is
           paired, every Pi process on this machine accepts it (it lives in{" "}
           <InlineCode>~/.pi/remote/peers.json</InlineCode>).
@@ -299,11 +351,35 @@ export default function DocsPage() {
 
       <DocsSection id="relay" title="The relay">
         <p>
-          The relay is the only network-touching piece of Remote Pi. It does{" "}
-          <strong className="text-fg">not</strong> read messages — payloads are
-          end-to-end encrypted between the Pi and the paired device — but it
-          sees connection metadata: which keypair is online, which room/cwd
-          identifiers exist, message timing, sizes.
+          The relay is the only network-touching piece of Remote Pi. In the
+          current MVP it sees both message payloads (forwarded but never
+          logged or inspected by the community operator) and connection
+          metadata: which keypair is online, which room/cwd identifiers
+          exist, message timing, sizes. Application-layer end-to-end
+          encryption of payloads is on the roadmap — see the{" "}
+          <a href="#mobile-app-layer" className="text-accent underline">
+            trust model
+          </a>{" "}
+          above and the Privacy Policy, section 9, for the full picture.
+        </p>
+        <p>
+          The relay also <strong className="text-fg">persists a small SQLite
+          table</strong> called <InlineCode>mesh_versions</InlineCode> — blobs
+          signed by your Owner key listing the Pi devices that belong to your
+          mesh (a few KB per Owner). The relay verifies the Ed25519
+          signature on every <InlineCode>POST /mesh/&lt;owner_pk_hash&gt;</InlineCode>{" "}
+          and stores what you signed; it never decides membership itself.
+          New devices restoring your Owner key recover their peer list from
+          this blob. A relay compromise means DoS, not impersonation. See the{" "}
+          <a
+            className="text-accent underline"
+            href={`${GITHUB_URL}/blob/main/PROTOCOL.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            PROTOCOL.md
+          </a>{" "}
+          mesh-membership section for the wire format.
         </p>
         <p>You have two options.</p>
 
@@ -319,11 +395,15 @@ export default function DocsPage() {
           <ul className="ml-6 list-disc space-y-2">
             <li>Shared infrastructure — availability is best-effort.</li>
             <li>
-              The operator could observe connection metadata as described above.
+              <strong className="text-fg">TLS in transit is the only network protection</strong>
+              {" "}— the relay operator sees plaintext envelopes (payloads,
+              routing metadata, peer pubkeys, timing). Self-host for
+              confidentiality from the operator.
             </li>
             <li>
-              TLS + per-message encryption is the only protection;{" "}
-              <strong className="text-fg">there is no IP allow-listing or VPN gating</strong>.
+              <strong className="text-fg">No IP allow-listing or VPN gating</strong>{" "}
+              built in. Anyone with a paired keypair can connect; layer a
+              VPN on top via Option B if you want network-level isolation.
             </li>
           </ul>
         </DocsSubsection>
@@ -350,35 +430,49 @@ export default function DocsPage() {
             code={`docker run -d \\
   --name remote-pi-relay \\
   -p 3000:3000 \\
+  -v remote-pi-data:/data \\
   --restart unless-stopped \\
-  ghcr.io/jacobaraujo7/remote-pi-relay:latest`}
+  jacobmoura7/remote-pi-relay`}
             label="On your relay host"
             language="bash"
           />
           <p>
+            The <InlineCode>-v remote-pi-data:/data</InlineCode> mount is
+            required — that&apos;s where the relay keeps{" "}
+            <InlineCode>mesh.db</InlineCode> (the Owner-signed mesh blobs).
+            Skip the volume and the table is wiped on every container restart,
+            forcing every client to re-publish.
+          </p>
+          <p>
+            The relay serves the WebSocket upgrade,{" "}
+            <InlineCode>/health</InlineCode>, and{" "}
+            <InlineCode>/mesh/&lt;owner_pk_hash&gt;</InlineCode> on the same
+            port (default 3000) — point your reverse proxy at one upstream
+            and you&apos;re done. Use <InlineCode>/health</InlineCode> for
+            liveness probes (Coolify, Kubernetes, Fly health checks).
+          </p>
+          <p>
             Bind the container to your VPN interface, terminate TLS in a reverse
             proxy, and point both your Pi and your phone at the resulting{" "}
-            <InlineCode>wss://…</InlineCode> URL.
+            <InlineCode>https://…</InlineCode> URL.
           </p>
         </DocsSubsection>
 
         <DocsSubsection id="point-pi" title="Pointing Pi at your own relay">
           <p>Once your relay is reachable, tell the extension:</p>
           <CodeBlock
-            code="/remote-pi relay url wss://relay.yourdomain.tld"
+            code="/remote-pi set-relay https://relay.yourdomain.tld"
             label="In Pi"
             language="text"
           />
           <p>
-            You can also paste an <InlineCode>https://</InlineCode> URL — many
-            hosts (Coolify, Fly, Render, Vercel-style PaaS) only expose HTTPS
-            endpoints in their dashboards, but WebSocket Secure (
-            <InlineCode>wss://</InlineCode>) runs over the same TLS connection
-            on the same port. The extension auto-rewrites{" "}
-            <InlineCode>https://</InlineCode> → <InlineCode>wss://</InlineCode>{" "}
-            and <InlineCode>http://</InlineCode> →{" "}
-            <InlineCode>ws://</InlineCode> so you can use whatever URL your
-            provider gives you.
+            The URL must be <InlineCode>http://</InlineCode> or{" "}
+            <InlineCode>https://</InlineCode> —{" "}
+            <InlineCode>wss://</InlineCode> / <InlineCode>ws://</InlineCode>{" "}
+            are rejected at validation. The extension converts to the
+            WebSocket form internally when it opens the connection, so you
+            can paste whatever URL your reverse proxy or PaaS dashboard
+            exposes.
           </p>
           <p>
             This writes <InlineCode>~/.pi/remote/config.json</InlineCode> with{" "}
@@ -387,27 +481,22 @@ export default function DocsPage() {
           </p>
           <ol className="ml-6 list-decimal space-y-2">
             <li>
-              <InlineCode>REMOTE_PI_RELAY</InlineCode> environment variable (CI
-              / one-off overrides)
+              <InlineCode>REMOTE_PI_RELAY</InlineCode> environment variable
+              (CI / one-off overrides)
             </li>
             <li><InlineCode>~/.pi/remote/config.json</InlineCode></li>
             <li>
               The built-in default (
-              <InlineCode>https://relay-rp1.jacobmoura.work</InlineCode>, used
-              as <InlineCode>wss://…</InlineCode>)
+              <InlineCode>https://relay-rp1.jacobmoura.work</InlineCode>)
             </li>
           </ol>
           <p>Verify the active URL and its source with:</p>
           <CodeBlock code="/remote-pi config" label="In Pi" language="text" />
           <p>
-            If you change the URL while connected, run{" "}
-            <InlineCode>/remote-pi relay stop</InlineCode> then{" "}
-            <InlineCode>/remote-pi relay start</InlineCode> (or{" "}
-            <InlineCode>/remote-pi relay</InlineCode> to toggle).
-          </p>
-          <p>
-            The mobile app has its own relay-URL setting in its preferences
-            pane — keep both pointing at the same relay.
+            To switch URLs while connected: <InlineCode>/remote-pi stop</InlineCode>{" "}
+            then <InlineCode>/remote-pi</InlineCode> again. The mobile app has
+            its own relay-URL setting in its preferences pane — keep both
+            pointing at the same relay.
           </p>
         </DocsSubsection>
       </DocsSection>
@@ -419,49 +508,89 @@ export default function DocsPage() {
           broadcasts system events (<InlineCode>peer_joined</InlineCode>,{" "}
           <InlineCode>peer_left</InlineCode>).
         </p>
-        <p>Inside the LLM, the agent skill registers two tools:</p>
+        <p>Inside the LLM, the agent skill registers three tools:</p>
         <CodeBlock
           label="Tools available to the LLM"
           language="jsonc"
-          code={`// Fire-and-forget
-agent_send({
-  to: "backend",      // peer name (or array for multicast)
-  body: { task: "add /healthz endpoint" },
-  re: "<id>"          // optional — set when replying to a previous request
-})
+          code={`// Discover peers (synchronous, ms-latency)
+list_peers()
+→ { peers: ["backend", "MacMini:agent-1", "trab:worker"] }
 
-// Send + await reply (default 30s timeout)
-agent_request({
+// Send a message with ACK (5s ack timeout)
+agent_send({
   to: "backend",
-  body: { question: "is the migration applied?" }
-})`}
+  body: { task: "add /healthz endpoint" },
+  re: "<id>"            // optional — set when REPLYING to an earlier message
+})
+→ { status: "received" | "busy" | "denied" | "timeout" | "sent" }
+
+// Cross-PC sends use the same tool — just prefix with the pc_label
+agent_send({ to: "MacMini:agent-1", body: { ... } })
+
+// agent_request is DEPRECATED — emits a warning on first call.
+// Kept for backward compat; new agents use agent_send and observe
+// the inbox in a future turn.`}
         />
+        <p>
+          Replies arrive in a future turn as a normal envelope with{" "}
+          <InlineCode>re=&lt;your-send-id&gt;</InlineCode>. The agent skill
+          documents the retry matrix (
+          <InlineCode>busy</InlineCode> → back off 2s/5s;{" "}
+          <InlineCode>denied</InlineCode> → abandon;{" "}
+          <InlineCode>timeout</InlineCode> → retry once;{" "}
+          <InlineCode>sent</InlineCode> → cross-PC envelope was forwarded but
+          the remote ACK hasn&apos;t arrived yet).
+        </p>
         <p>
           The wire format is a 5-field envelope{" "}
           <InlineCode>{`{ from, to, id, re, body }`}</InlineCode> serialized as
           one JSON line per message. The leader&apos;s broker writes an{" "}
           <InlineCode>audit.jsonl</InlineCode> log at{" "}
-          <InlineCode>~/.pi/remote/sessions/&lt;name&gt;/audit.jsonl</InlineCode>{" "}
-          for postmortem inspection.
+          <InlineCode>~/.pi/remote/sessions/local/audit.jsonl</InlineCode>{" "}
+          for postmortem inspection. See the{" "}
+          <a href="#commands-local" className="text-accent underline">
+            Command reference
+          </a>{" "}
+          for inspecting the mesh from the CLI side
+          (<InlineCode>/remote-pi peers</InlineCode>).
         </p>
-        <p>Useful commands:</p>
-        <DocsTable
-          headers={["Command", "What it does"]}
-          rows={[
-            [
-              <InlineCode key="cmd">/remote-pi join [name]</InlineCode>,
-              <>Join (or create) a session — only needed manually if <InlineCode>auto_start_relay=false</InlineCode></>,
-            ],
-            [<InlineCode key="cmd">/remote-pi leave</InlineCode>, "Leave the current session"],
-            [<InlineCode key="cmd">/remote-pi sessions</InlineCode>, "List local sessions and which are live"],
-            [<InlineCode key="cmd">/remote-pi rename &lt;new&gt;</InlineCode>, "Rename this agent in the current session"],
-          ]}
-        />
         <p>
           Name collisions inside a session get a numeric suffix automatically
           (<InlineCode>backend</InlineCode>, <InlineCode>backend#2</InlineCode>,{" "}
           <InlineCode>backend#3</InlineCode>). The broker assigns it and
           returns the real name to the peer.
+        </p>
+      </DocsSection>
+
+      <DocsSection id="protocol" title="Protocol & Security">
+        <p>
+          The canonical spec for everything wire-level — envelope format,
+          identity model (Owner key + per-device subkeys), ACK protocol,
+          cross-PC routing, mesh membership, trust model, and failure modes
+          — lives in{" "}
+          <a
+            className="text-accent underline"
+            href={`${GITHUB_URL}/blob/main/PROTOCOL.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            PROTOCOL.md
+          </a>{" "}
+          on GitHub. It is the source of truth that the Pi extension, the
+          mobile apps, and the relay all implement against. Read it when you
+          need exact behavior or when writing a new harness adapter.
+        </p>
+        <p>
+          A short summary of the security posture is on this page (
+          <a href="#mobile-app-layer" className="text-accent underline">
+            trust model
+          </a>{" "}
+          and{" "}
+          <a href="#relay" className="text-accent underline">
+            The relay
+          </a>
+          ); the Privacy Policy, section 9, restates it in plain language.
+          PROTOCOL.md is the deep dive that matches the code.
         </p>
       </DocsSection>
 
@@ -477,42 +606,37 @@ agent_request({
 
         <DocsSubsection id="daemon-prereq" title="One-time setup">
           <p>
-            Install the package globally so <InlineCode>remote-pi</InlineCode>{" "}
-            and <InlineCode>pi-supervisord</InlineCode> are on your PATH.{" "}
-            <InlineCode>pi install npm:remote-pi</InlineCode> alone makes the
-            Pi extension available but does <strong className="text-fg">not</strong>{" "}
-            expose the CLI binaries — both installs are independent and can
-            coexist.
+            The setup wizard&apos;s third question (
+            <em>Enable daemon mode?</em>) does this for you on first run. If
+            you answered <InlineCode>No</InlineCode> or want to opt in later,
+            run from inside Pi:
           </p>
           <CodeBlock
-            code={`# Put the CLI on your PATH.
-npm install -g remote-pi
-
-# Install the supervisor as a user-level system service.
-# Linux: systemd --user, macOS: launchd LaunchAgent.
-# Both auto-start at login and survive reboots.
-remote-pi install`}
-            label="One-time setup"
-            language="bash"
+            code="/remote-pi install"
+            label="In Pi"
+            language="text"
           />
-          <p>
-            <InlineCode>remote-pi install</InlineCode>:
-          </p>
+          <p>That single command does two things:</p>
           <ul className="ml-6 list-disc space-y-2">
             <li>
-              Writes{" "}
+              Installs the user-level supervisor service —{" "}
               <InlineCode>~/.config/systemd/user/remote-pi-supervisord.service</InlineCode>{" "}
               (Linux) or{" "}
               <InlineCode>~/Library/LaunchAgents/dev.remotepi.supervisord.plist</InlineCode>{" "}
-              (macOS).
+              (macOS) — and activates it via{" "}
+              <InlineCode>systemctl --user enable --now</InlineCode> /{" "}
+              <InlineCode>launchctl bootstrap</InlineCode>. It auto-starts at
+              login and survives reboots.
             </li>
             <li>
-              Activates via{" "}
-              <InlineCode>systemctl --user enable --now</InlineCode> or{" "}
-              <InlineCode>launchctl bootstrap</InlineCode>.
-            </li>
-            <li>
-              The supervisor starts immediately and re-starts on every login.
+              Symlinks <InlineCode>remote-pi</InlineCode> and{" "}
+              <InlineCode>pi-supervisord</InlineCode> into{" "}
+              <InlineCode>~/.local/bin/</InlineCode> so the CLI is available
+              from any shell. If <InlineCode>~/.local/bin</InlineCode> is not
+              on your <InlineCode>$PATH</InlineCode>,{" "}
+              <InlineCode>install</InlineCode> prints the exact snippet to
+              add to <InlineCode>~/.zshrc</InlineCode> or{" "}
+              <InlineCode>~/.bashrc</InlineCode>.
             </li>
           </ul>
         </DocsSubsection>
@@ -664,6 +788,10 @@ remote-pi uninstall                # remove the supervisor service (registry kep
                 "Show local mesh + relay status",
               ],
               [
+                <InlineCode key="c">/remote-pi peers</InlineCode>,
+                "List local and cross-PC mesh peers, grouped by PC label",
+              ],
+              [
                 <InlineCode key="c">/remote-pi stop</InlineCode>,
                 <>Stop everything for <em>this</em> terminal (mesh + relay)</>,
               ],
@@ -735,12 +863,19 @@ remote-pi uninstall                # remove the supervisor service (registry kep
               [
                 <InlineCode key="c">/remote-pi install</InlineCode>,
                 <>
-                  Install <InlineCode>pi-supervisord</InlineCode> as a system service
+                  Install <InlineCode>pi-supervisord</InlineCode> as a system
+                  service <strong className="text-fg">and</strong> symlink the{" "}
+                  <InlineCode>remote-pi</InlineCode> CLI into{" "}
+                  <InlineCode>~/.local/bin/</InlineCode>
                 </>,
               ],
               [
                 <InlineCode key="c">/remote-pi uninstall</InlineCode>,
-                "Remove the system service (registry preserved)",
+                <>
+                  Remove the system service <strong className="text-fg">and</strong>{" "}
+                  the <InlineCode>~/.local/bin</InlineCode> symlinks (daemon
+                  registry preserved)
+                </>,
               ],
             ]}
           />
@@ -748,12 +883,12 @@ remote-pi uninstall                # remove the supervisor service (registry kep
         <p>The footer in the Pi TUI reflects state live:</p>
         <ul className="ml-6 list-disc space-y-2">
           <li>
-            <InlineCode>📡 &lt;session&gt; (N)</InlineCode> — current agent
-            session and peer count
+            <InlineCode>📡 local (N)</InlineCode> — local mesh session and
+            peer count
           </li>
           <li>
             <InlineCode>🟢 relay</InlineCode> — relay connected, at least one
-            device paired
+            device paired on this machine
           </li>
           <li>
             <InlineCode>🟡 relay waiting for pairing</InlineCode> — relay
@@ -765,9 +900,10 @@ remote-pi uninstall                # remove the supervisor service (registry kep
           </li>
         </ul>
         <p>
-          The window title becomes{" "}
-          <InlineCode>&lt;agent-name&gt; · &lt;session&gt; · relay</InlineCode>{" "}
-          so you can tell your terminals apart at a glance.
+          The window title is two parts —{" "}
+          <InlineCode>&lt;agent-name&gt; · On</InlineCode> when the relay is
+          up or <InlineCode>&lt;agent-name&gt; · Off</InlineCode> otherwise —
+          so you can tell your terminal tabs apart at a glance.
         </p>
       </DocsSection>
 
@@ -780,7 +916,6 @@ remote-pi uninstall                # remove the supervisor service (registry kep
               "Per-directory",
               <>
                 <InlineCode>agent_name</InlineCode>,{" "}
-                <InlineCode>session_name</InlineCode>,{" "}
                 <InlineCode>auto_start_relay</InlineCode>
               </>,
             ],
@@ -800,8 +935,26 @@ remote-pi uninstall                # remove the supervisor service (registry kep
               <>Daemon registry (list of <InlineCode>{`{ cwd }`}</InlineCode> entries)</>,
             ],
             [
-              <InlineCode key="p">~/.pi/remote/sessions/&lt;name&gt;/</InlineCode>,
-              "Per-session",
+              <InlineCode key="p">~/.pi/remote/identity.json</InlineCode>,
+              "Per-machine",
+              <>
+                Pi-secret fallback when the OS keyring is unavailable
+                (headless Linux). Stored with{" "}
+                <InlineCode>chmod 0600</InlineCode>. See{" "}
+                <a
+                  className="text-accent underline"
+                  href={`${GITHUB_URL}/blob/main/PROTOCOL.md`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  PROTOCOL.md
+                </a>{" "}
+                for the keyring details.
+              </>,
+            ],
+            [
+              <InlineCode key="p">~/.pi/remote/sessions/local/</InlineCode>,
+              "Per-machine",
               <>Broker socket + <InlineCode>audit.jsonl</InlineCode></>,
             ],
             [
@@ -813,10 +966,17 @@ remote-pi uninstall                # remove the supervisor service (registry kep
         />
         <p>Override the relay for a single run without persisting:</p>
         <CodeBlock
-          code="REMOTE_PI_RELAY=wss://staging.example.tld pi"
+          code="REMOTE_PI_RELAY=https://staging.example.tld pi"
           label="Shell"
           language="bash"
         />
+        <p className="text-sm">
+          Only <InlineCode>http://</InlineCode> /{" "}
+          <InlineCode>https://</InlineCode> are accepted —{" "}
+          <InlineCode>wss://</InlineCode> / <InlineCode>ws://</InlineCode> are
+          rejected at validation, the extension converts to the WebSocket
+          form internally when it opens the connection.
+        </p>
       </DocsSection>
 
       <DocsSection id="troubleshooting" title="Troubleshooting">
@@ -836,21 +996,63 @@ remote-pi uninstall                # remove the supervisor service (registry kep
             (Tailscale on iOS/Android works fine).
           </p>
         </DocsSubsection>
-        <DocsSubsection id="timeout-request" title="agent_request keeps timing out">
+        <DocsSubsection id="timeout-request" title="Reply never arrives">
           <p>
-            Default timeout is 30 s. For tasks that legitimately take longer,
-            the receiver should reply with <InlineCode>agent_send</InlineCode>{" "}
-            including <InlineCode>re: &quot;&lt;original-id&gt;&quot;</InlineCode>{" "}
-            so the requester can correlate. The skill explains this to the LLM
-            automatically.
+            <InlineCode>agent_send</InlineCode> returned{" "}
+            <InlineCode>{`{ status: "received" }`}</InlineCode> but no reply
+            ever lands in your inbox. Possible causes:
+          </p>
+          <ul className="ml-6 list-disc space-y-2">
+            <li>
+              <strong className="text-fg">Receiver crashed or never processed.</strong>{" "}
+              Run <InlineCode>/remote-pi peers</InlineCode> to see whether the
+              peer is still online.
+            </li>
+            <li>
+              <strong className="text-fg">The receiver chose not to reply.</strong>{" "}
+              <InlineCode>agent_send</InlineCode> is not RPC — there&apos;s no
+              obligation to respond. If the conversation needs a reply, the
+              prompt to the receiver must say so explicitly.
+            </li>
+            <li>
+              <strong className="text-fg">Cross-PC: peer went offline.</strong>{" "}
+              Look in your inbox for a <InlineCode>transport_error</InlineCode>{" "}
+              envelope with <InlineCode>re=&lt;your-send-id&gt;</InlineCode>{" "}
+              — the relay returns one when a forwarded message can&apos;t be
+              delivered.
+            </li>
+          </ul>
+          <p className="text-sm">
+            <strong className="text-fg">Note:</strong>{" "}
+            <InlineCode>agent_request</InlineCode> is deprecated (still
+            available as a wrapper for backward compat, emits a warning).
+            New agents call <InlineCode>agent_send</InlineCode> and observe
+            the inbox in a future turn.
           </p>
         </DocsSubsection>
-        <DocsSubsection id="multi-terminal" title="Multiple terminals in the same directory">
+        <DocsSubsection
+          id="one-pi-per-cwd"
+          title="Two Pi processes can't share a directory"
+        >
           <p>
-            Supported. They share the same agent-network session (UDS broker)
-            and the relay handles each Pi process independently. If the relay
-            refuses with <InlineCode>RoomAlreadyOpenError</InlineCode>, stop the
-            other terminal first.
+            A cwd lock allows{" "}
+            <strong className="text-fg">one Pi process per directory</strong>.
+            If you try to run <InlineCode>/remote-pi</InlineCode> in a second
+            terminal that&apos;s already in the same folder, the second start
+            is rejected (and the relay, separately, refuses a duplicate room
+            with <InlineCode>RoomAlreadyOpenError</InlineCode>).
+          </p>
+          <p>
+            <strong className="text-fg">To run two agents side by side:</strong>{" "}
+            put them in two different directories and answer the setup wizard
+            with the same <em>Default session</em> in each. Both processes
+            then meet in the same agent-network room while keeping isolated
+            workspaces.
+          </p>
+          <p>
+            If you actually wanted a second terminal at the same workspace
+            (e.g. just to read state), stop the running Pi first or open a
+            shell that does <em>not</em> launch Pi.
           </p>
         </DocsSubsection>
       </DocsSection>
@@ -867,6 +1069,17 @@ remote-pi uninstall                # remove the supervisor service (registry kep
             Source:{" "}
             <a className="text-accent underline" href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
               github.com/jacobaraujo7/remote_pi
+            </a>
+          </li>
+          <li>
+            Protocol spec:{" "}
+            <a
+              className="text-accent underline"
+              href={`${GITHUB_URL}/blob/main/PROTOCOL.md`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              PROTOCOL.md
             </a>
           </li>
           <li>
@@ -917,6 +1130,7 @@ function DocsToc() {
           <TocItem href="#point-pi" label="Point Pi at your relay" sub />
         </TocItem>
         <TocItem href="#agent-network" label="Agent network deep dive" />
+        <TocItem href="#protocol" label="Protocol & Security" />
         <TocItem href="#daemon-mode" label="Daemon mode">
           <TocItem href="#daemon-prereq" label="One-time setup" sub />
           <TocItem href="#daemon-per-folder" label="Per-folder workflow" sub />
@@ -933,8 +1147,8 @@ function DocsToc() {
         <TocItem href="#troubleshooting" label="Troubleshooting">
           <TocItem href="#footer-stuck" label="Stuck on pairing" sub />
           <TocItem href="#timeout-mobile" label="Mobile times out" sub />
-          <TocItem href="#timeout-request" label="agent_request timeout" sub />
-          <TocItem href="#multi-terminal" label="Multiple terminals" sub />
+          <TocItem href="#timeout-request" label="Reply never arrives" sub />
+          <TocItem href="#one-pi-per-cwd" label="One Pi per cwd" sub />
         </TocItem>
         <TocItem href="#links" label="Links" />
       </ul>

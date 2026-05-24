@@ -7,28 +7,29 @@ const GITHUB_URL = "https://github.com/jacobaraujo7/remote_pi";
 
 const features = [
   {
-    title: "QR-code pairing",
+    title: "Phone is just the authenticator",
     description:
-      "One-time QR scan to pair phone and Pi. Devices authenticate each other with Ed25519 challenge-response — no accounts, no email.",
+      "Scan a QR once to bring a machine into your mesh. After that the PCs operate on their own — pair multiple phones to the same Owner key and they stay in sync.",
     icon: <ShieldIcon />,
   },
   {
-    title: "Works with your existing Pi",
+    title: "Works with the harness you use",
     description: (
       <>
-        One command in any project:{" "}
+        Pi today, via{" "}
         <code className="rounded bg-bg/60 px-1 py-0.5 font-mono text-xs text-fg">
           /remote-pi
-        </code>{" "}
-        spins up the bridge and prints the pairing QR.
+        </code>
+        . The envelope protocol is harness-agnostic, so Claude Code or
+        OpenCode can join the mesh as adapters land.
       </>
     ),
     icon: <TerminalIcon />,
   },
   {
-    title: "Multi-agent mesh",
+    title: "Mesh across machines",
     description:
-      "Local UDS broker lets agents talk to each other on the Pi. Your phone is just one more peer on the bus.",
+      "Local UDS broker for same-machine peers, relay for cross-PC. Every box paired to the same Owner key is one logical mesh — no central server.",
     icon: <MeshIcon />,
   },
   {
@@ -47,7 +48,7 @@ pi install npm:remote-pi
 
 # 3. Scan the QR code with the Remote Pi app on your phone.
 
-#Done — chat with your Pi from anywhere.`;
+#Done — chat with any agent in your mesh from anywhere.`;
 
 export default function Home() {
   return (
@@ -68,11 +69,12 @@ export default function Home() {
               id="get-the-app-heading"
               className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
             >
-              Drive your Pi from your phone.
+              Pair your phones, drive the mesh.
             </h2>
             <p className="mx-auto max-w-xl text-pretty text-base leading-relaxed text-muted">
-              Public store releases are on the way. In the meantime, grab the
-              latest Android APK straight from GitHub Releases.
+              Your phone is the authenticator and the remote control. Public
+              store releases are on the way; in the meantime, grab the latest
+              Android APK straight from GitHub Releases.
             </p>
           </div>
           <DownloadButtons />
@@ -92,7 +94,7 @@ export default function Home() {
               id="features-heading"
               className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
             >
-              Built for people who pair-program with their Pi.
+              Built for people who run coding agents on more than one box.
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -123,14 +125,14 @@ export default function Home() {
                 id="daemon-mode-heading"
                 className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
               >
-                Keep your Pi alive 24/7.
+                Keep your agents alive 24/7.
               </h2>
               <p className="text-base leading-relaxed text-muted">
-                Pair, configure, install, walk away. A single supervisor turns
-                every paired folder into a background agent that survives
-                logout, restarts on crash, and answers your phone at 3am.
-                systemd on Linux, launchd on macOS, one CLI to manage the
-                fleet.
+                Pair, configure, install, walk away. A single supervisor per
+                machine turns every paired folder into a background agent that
+                survives logout, restarts on crash, and answers any device on
+                the mesh at 3am. systemd on Linux, launchd on macOS, one CLI
+                to manage the fleet.
               </p>
               <p className="rounded-xl border border-border-soft bg-bg/60 px-4 py-3 text-sm leading-relaxed text-muted">
                 <strong className="text-fg">Heads up:</strong> daemons inherit
@@ -161,8 +163,8 @@ export default function Home() {
               <DaemonStep
                 n={3}
                 title="Install the supervisor"
-                command="remote-pi install"
-                description="One user-level service per machine: launchd plist or systemd --user unit, idempotent."
+                command="/remote-pi install"
+                description="From inside Pi — installs the user-level service (launchd/systemd) and links remote-pi + pi-supervisord into ~/.local/bin/."
               />
               <DaemonStep
                 n={4}
@@ -189,12 +191,12 @@ export default function Home() {
               id="quick-start-heading"
               className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
             >
-              Three steps from zero to remote.
+              Three steps from zero to mesh.
             </h2>
             <p className="text-base leading-relaxed text-muted">
               No accounts, no email, no SaaS sign-up. Install the extension on
-              the machine running your coding agent, run one command, scan a QR
-              code, and you&apos;re paired.
+              every machine that runs an agent, scan a QR from your phone once,
+              and the mesh is alive.
             </p>
             <a
               href={GITHUB_URL}
@@ -215,11 +217,11 @@ export default function Home() {
             id="cta-heading"
             className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
           >
-            Ready to remote your Pi?
+            Ready to mesh your agents?
           </h2>
           <p className="max-w-xl text-pretty text-base leading-relaxed text-muted">
-            Remote Pi is in active MVP. Read the source, file issues, or
-            self-host the relay — everything is on GitHub.
+            Remote Pi is in active MVP. Read the source, run the envelope
+            protocol, or self-host the relay — everything is on GitHub.
           </p>
           <a
             href={GITHUB_URL}

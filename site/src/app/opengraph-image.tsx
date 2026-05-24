@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Remote Pi — Control your Pi coding agent from your phone";
+export const alt = "Remote Pi — A mesh of coding agents on every machine you work from";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -67,7 +67,7 @@ export default function OpengraphImage() {
               lineHeight: 1.1,
             }}
           >
-            Control your Pi coding agent from your phone.
+            A mesh of coding agents on every machine you work from.
           </div>
           <div
             style={{
@@ -76,7 +76,7 @@ export default function OpengraphImage() {
               lineHeight: 1.4,
             }}
           >
-            Multi-agent mesh · self-hostable relay · open source
+            Phone-as-authenticator · cross-PC mesh · self-hostable
           </div>
         </div>
       </div>

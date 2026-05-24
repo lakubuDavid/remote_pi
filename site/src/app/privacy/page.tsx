@@ -69,7 +69,7 @@ export default function PrivacyPage() {
         </h3>
         <p>
           When you connect to the public relay operated by Flutterando, the
-          relay processes two categories of data:
+          relay processes three categories of data:
         </p>
         <ul className="ml-6 list-disc space-y-2">
           <li>
@@ -92,6 +92,23 @@ export default function PrivacyPage() {
             <strong className="text-fg">not log, persist, or inspect</strong>{" "}
             those payloads — we forward them and discard them. See §9 for the
             full trust model.
+          </li>
+          <li>
+            <strong className="text-fg">Signed mesh-membership blobs.</strong>{" "}
+            When you pair a new machine, your Owner key signs a small JSON
+            blob listing which Pi devices belong to that Owner&apos;s mesh,
+            and your app uploads it to the relay via{" "}
+            <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs text-fg">
+              POST /mesh/&lt;owner_pk_hash&gt;
+            </code>
+            . The relay verifies the Ed25519 signature and persists the blob
+            (a few KB per Owner) so that new devices restoring the same Owner
+            key can recover their peer list. The blob contains: Owner public
+            key, a version number, the list of Pi public keys you have
+            paired, and a timestamp. It is{" "}
+            <strong className="text-fg">not encrypted</strong> — anyone with
+            access to the relay database can read it. Pairing on your own
+            self-hosted relay keeps this data on your infrastructure.
           </li>
         </ul>
         <p>

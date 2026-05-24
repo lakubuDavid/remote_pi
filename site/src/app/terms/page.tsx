@@ -44,8 +44,11 @@ export default function TermsPage() {
           address, or provide personally identifiable information to use the
           Service. Instead, the Service uses an ephemeral, on-demand pairing
           flow: a QR code generated locally on the Pi-side extension is scanned
-          by the mobile app, establishing an end-to-end encrypted channel
-          between the two devices.
+          by the mobile app, establishing a mutually authenticated channel
+          between the two devices (Ed25519 challenge-response). See the
+          Privacy Policy, section 9, for the full trust model — application-
+          layer end-to-end encryption of payloads is on the roadmap, not yet
+          active.
         </p>
         <p>
           Each pairing produces a cryptographic key pair stored locally on the
@@ -116,8 +119,9 @@ export default function TermsPage() {
         <p>You must not:</p>
         <ul className="ml-6 list-disc space-y-2">
           <li>
-            Attempt to break, bypass, or weaken the end-to-end encryption used
-            by the Service, or attempt to read message plaintext on the relay.
+            Attempt to break, bypass, or weaken the cryptographic
+            authentication used by the Service (Ed25519 pairing, TLS to the
+            relay), or attempt to impersonate another paired device.
           </li>
           <li>
             Attack, overload, or otherwise disrupt the relay infrastructure or
