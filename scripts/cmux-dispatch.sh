@@ -14,11 +14,14 @@ set -euo pipefail
 #   scripts/cmux-dispatch.sh --wait Extension 03-ts-codec "Implemente..."
 #
 # Argumentos:
-#   --wait              (opcional) bloqueia até receber `agent.hook.Stop`
-#                       (phase=completed) com payload.cwd matching o pane alvo.
-#                       Requer que o worker tenha sido lançado via
-#                       `cmux claude-teams` (cmux-bootstrap-agents.sh já faz isso).
+#   --wait              (opcional) bloqueia até o agente gravar
+#                       .orchestration/results/<task-id>.md. Polling de
+#                       mtime no arquivo (snapshot antes do dispatch, espera
+#                       mudança após). Independente de hooks — funciona com
+#                       claude puro (sem cmux claude-teams). Convenção do
+#                       result file está nos CLAUDE.md de cada subprojeto.
 #   --timeout <s>       (opcional, default 1800) timeout em segundos pro --wait
+#   --poll-interval <s> (opcional, default 2) intervalo entre checagens
 #   <Pane>              App | Relay | Extension | Site
 #   <task-id>           ID curto (kebab/snake: a-z 0-9 . _ -)
 #   <prompt>            texto do prompt (use aspas se tem espaços)
@@ -42,15 +45,17 @@ usage() {
 
 wait_flag=0
 wait_timeout=1800
+poll_interval=2
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help)    usage; exit 0 ;;
-    --wait)       wait_flag=1; shift ;;
-    --timeout)    wait_timeout="${2:-}"; shift 2 || { echo "erro: --timeout precisa de valor" >&2; exit 2; } ;;
-    --)           shift; break ;;
-    -*)           echo "erro: flag desconhecida: $1" >&2; usage >&2; exit 2 ;;
-    *)            break ;;
+    -h|--help)        usage; exit 0 ;;
+    --wait)           wait_flag=1; shift ;;
+    --timeout)        wait_timeout="${2:-}"; shift 2 || { echo "erro: --timeout precisa de valor" >&2; exit 2; } ;;
+    --poll-interval)  poll_interval="${2:-}"; shift 2 || { echo "erro: --poll-interval precisa de valor" >&2; exit 2; } ;;
+    --)               shift; break ;;
+    -*)               echo "erro: flag desconhecida: $1" >&2; usage >&2; exit 2 ;;
+    *)                break ;;
   esac
 done
 
@@ -111,6 +116,14 @@ fi
 
 full_prompt="[ORCH:${task_id}] ${prompt}"
 
+# Pra --wait: capturar mtime do result file ANTES do dispatch. Polling
+# depois detecta mudança vs estado anterior, então re-dispatches do mesmo
+# task-id (sobrescrita) também são corretamente esperados. Stat retorna 0
+# quando arquivo não existe — qualquer mtime real será > 0.
+REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+result_file="$REPO_ROOT/.orchestration/results/${task_id}.md"
+before_mtime=$(stat -f %m "$result_file" 2>/dev/null || stat -c %Y "$result_file" 2>/dev/null || echo 0)
+
 cmux send     --surface "$sid" -- "$full_prompt" >/dev/null
 
 # Pequena pausa pro TUI do claude no destino terminar de processar o paste
@@ -124,49 +137,33 @@ cmux send-key --surface "$sid" enter >/dev/null
 printf "ok  %-10s %s\n     [ORCH:%s] %s\n" "$pane" "$sid" "$task_id" "$prompt"
 
 if [ "$wait_flag" -eq 1 ]; then
-  # Mapeia título do pane → cwd do subprojeto pra filtrar o evento certo
-  # (cmux events não filtra por workspace, só por categoria/nome — desambig
-  # pelo payload.cwd e payload.phase=="completed").
-  case "$pane" in
-    App)        sub="app" ;;
-    Relay)      sub="relay" ;;
-    Extension)  sub="pi-extension" ;;
-    Site)       sub="site" ;;
-  esac
-  REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-  expected_cwd="$REPO_ROOT/$sub"
+  # Polling do result file que o agente em modo orquestrado é convencionado
+  # a gravar (ver INSTRUCTIONS.md). Detecta conclusão por mudança de mtime
+  # vs snapshot pré-dispatch — funciona pra arquivo novo (0 → ts) e
+  # pra re-dispatch (ts_old → ts_novo).
+  #
+  # Compatível com claude puro (sem cmux claude-teams). Não depende de
+  # hook nenhum — só do contrato de "agente termina escrevendo o result".
+  echo "aguardando $result_file (poll ${poll_interval}s, timeout ${wait_timeout}s)..." >&2
 
-  command -v jq >/dev/null || { echo "erro: jq não encontrado (necessário pra --wait)" >&2; exit 1; }
-
-  cursor_dir="$HOME/.orch"
-  mkdir -p "$cursor_dir"
-  cursor_file="$cursor_dir/cursor.seq"
-
-  echo "aguardando agent.hook.Stop (phase=completed, cwd=$expected_cwd) — timeout ${wait_timeout}s..." >&2
-
-  # cmux events bloqueia até receber. Pipe via jq pra filtrar pelo cwd
-  # + phase=completed; head -n 1 fecha o pipe ao primeiro match.
-  # `timeout` envolve o conjunto pra prevenir hang infinito.
-  set +e
-  timeout "$wait_timeout" bash -c '
-    cmux events --category agent --name agent.hook.Stop \
-                --reconnect --no-heartbeat --no-ack \
-                --cursor-file '"'$cursor_file'"' \
-      | jq -c --arg cwd '"'$expected_cwd'"' '\''
-          select(.payload.phase == "completed" and .payload.cwd == $cwd)
-        '\'' \
-      | head -n 1
-  '
-  rc=$?
-  set -e
-
-  if [ "$rc" -eq 124 ]; then
-    echo "timeout (${wait_timeout}s) sem receber Stop pra $pane" >&2
-    exit 4
-  fi
-  if [ "$rc" -ne 0 ]; then
-    echo "erro inesperado escutando eventos (rc=$rc)" >&2
-    exit "$rc"
-  fi
-  echo "ok  $pane completou (Stop recebido)" >&2
+  start_ts=$(date +%s)
+  while :; do
+    cur_mtime=$(stat -f %m "$result_file" 2>/dev/null || stat -c %Y "$result_file" 2>/dev/null || echo 0)
+    if [ "$cur_mtime" -gt "$before_mtime" ]; then
+      # arquivo existe e mudou desde o dispatch. Confirma que tem conteúdo
+      # estruturado (linha Status: ...) — protege contra agente que cria
+      # o arquivo vazio antes de escrever (caso raro mas observado).
+      if grep -qE '^\*?\*?Status\*?\*?:' "$result_file" 2>/dev/null; then
+        elapsed=$(( $(date +%s) - start_ts ))
+        echo "ok  $pane completou em ${elapsed}s ($result_file)" >&2
+        exit 0
+      fi
+    fi
+    elapsed=$(( $(date +%s) - start_ts ))
+    if [ "$elapsed" -ge "$wait_timeout" ]; then
+      echo "timeout (${wait_timeout}s) sem result file de $pane" >&2
+      exit 4
+    fi
+    sleep "$poll_interval"
+  done
 fi

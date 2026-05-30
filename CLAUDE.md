@@ -111,48 +111,49 @@ Quando NÃO usar o wrapper:
   `cmux send-key --surface "$(surface_of <Nome>)" enter` (Enter separado
   porque `\n` vira newline multilinha no prompt do claude, não submit)
 
-### Aguardar o worker terminar (hook `agent.hook.Stop`)
+### Aguardar o worker terminar (polling do result file)
 
-Pré-requisito: o pane alvo precisa ter sido lançado via `cmux claude-teams`
-(o wrapper que injeta os hooks Claude Code). O `cmux-bootstrap-agents.sh`
-já faz isso desde 2026-05-24. Panes lançados com `claude` puro **não emitem
-hooks** — orquestrador fica refém de "feito" digitado pelo humano.
-
-Pra checar se um pane está no formato certo, rode no orquestrador:
-
-```bash
-cmux events --category agent --limit 1 --no-heartbeat --no-ack &
-PID=$!; sleep 2; kill $PID 2>/dev/null
-```
-
-Se voltar silêncio em 2s sem nenhum evento, os panes estão em modo solo —
-ofereça rodar `scripts/cmux-close-agents.sh` + `scripts/cmux-bootstrap-agents.sh
---resume` pra reativar com hooks.
-
-**Forma preferida** — dispatch com `--wait` bloqueia até o worker emitir Stop:
+**Forma preferida** — dispatch com `--wait` faz polling do
+`.orchestration/results/<task-id>.md` até detectar mtime nova:
 
 ```bash
 scripts/cmux-dispatch.sh --wait Extension 25-wave-x "..."
-# bloqueia aqui; retorna quando Stop (phase=completed) chega com cwd matching
+# bloqueia aqui; retorna quando o agente grava o result file
 ```
 
-**Forma manual** (depois de dispatch sem `--wait`):
+Como funciona: o script captura `stat -c %Y` do arquivo ANTES do
+dispatch (0 se não existe) e poll a cada 2s até `cur_mtime > before_mtime`
++ confirma que tem linha `**Status**:`. Independente de hooks — funciona
+com claude puro nos panes. Default timeout 1800s, ajustável via
+`--timeout <s>` e `--poll-interval <s>`.
+
+**Por que polling em vez de hooks**: hooks (`agent.hook.Stop`) só são
+emitidos quando o pane roda `cmux claude-teams`, mas nossa convenção é
+panes com `claude` puro (per-folder, com `.claude/settings.json` próprio
+em cada subprojeto). O polling reusa a convenção já existente do result
+file — o agente é obrigado a gravar `.orchestration/results/<id>.md` no
+fim de qualquer task orquestrada (per `INSTRUCTIONS.md`), então o arquivo
+é nosso "Stop" de fato.
+
+**Re-dispatch funciona**: se um task-id é reutilizado (sobrescrita do
+result file), o `before_mtime` snapshot garante que a próxima escrita
+ainda dispara — não é vulnerável a arquivo pré-existente.
+
+**Forma manual** (debug, ou se quiser ver o arquivo aparecer):
 
 ```bash
-cmux events --category agent --name agent.hook.Stop \
-            --reconnect --no-heartbeat --no-ack \
-            --cursor-file ~/.orch/cursor.seq \
-  | jq -c --arg cwd "$PWD/pi-extension" \
-      'select(.payload.phase == "completed" and .payload.cwd == $cwd)' \
-  | head -n 1
+# em um terminal: dispara sem wait
+scripts/cmux-dispatch.sh Extension 25-wave-x "..."
+
+# em outro: poll você mesmo
+while [ ! -f .orchestration/results/25-wave-x.md ]; do sleep 2; done
+cat .orchestration/results/25-wave-x.md
 ```
 
-`cmux events` não tem filtro `--workspace` — desambig via `payload.cwd` no jq.
-Sempre `phase=="completed"` (vem depois de `phase=="received"`). O
-`--cursor-file` sobrevive crashes.
-
-Depois de Stop, **leia `.orchestration/results/<task-id>.md`** pro report
-estruturado — nunca dependa de screen-scrape do pane.
+**Hooks ainda funcionam se o pane usar `cmux claude-teams`** — não removi
+nada do cmux, só mudei o que o nosso script espera. Se um dia o setup for
+claude-teams, `cmux events --category agent --name agent.hook.Stop` segue
+válido pra quem quiser usar.
 
 ### Criar os 4 panes do zero
 
