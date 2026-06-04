@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FeatureCard } from "@/components/feature-card";
 import { Callout } from "@/components/callout";
+import { IconDownload, IconGithub } from "@/components/landing/icons";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 export const metadata: Metadata = {
   title: "Why Pi",
@@ -46,134 +47,140 @@ const highlights = [
 
 export default function WhyPage() {
   return (
-    <>
-      <section className="border-b border-border-soft">
-        <div className="mx-auto flex max-w-3xl flex-col gap-5 px-6 py-20 sm:py-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Why Pi
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-            An always-on agent you assemble yourself.
-          </h1>
-          <p className="text-pretty text-lg leading-relaxed text-muted">
-            remote-pi turns Pi into a background agent that never logs off — and
-            a phone in your pocket that drives it. This page is about that
-            choice: keeping a coding agent alive 24/7, and whether building it up
-            from something small is the shape you want.
-          </p>
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="pi-highlights-heading"
-        className="border-b border-border-soft"
-      >
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="mb-12 flex flex-col gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-              What you get
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <header className="page-head reveal" style={{ maxWidth: 760 }}>
+            <span className="eyebrow">Why Pi</span>
+            <h1>An always-on agent you assemble yourself.</h1>
+            <p className="lede">
+              remote-pi turns Pi into a background agent that never logs off —
+              and a phone in your pocket that drives it. This page is about that
+              choice: keeping a coding agent alive 24/7, and whether building it
+              up from something small is the shape you want.
             </p>
-            <h2
-              id="pi-highlights-heading"
-              className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
-            >
-              Pi, kept alive and put in your pocket.
-            </h2>
+          </header>
+
+          <div className="section-head reveal" style={{ marginTop: 64 }}>
+            <span className="eyebrow">What you get</span>
+            <h2>Pi, kept alive and put in your pocket.</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {highlights.map((item) => (
-              <FeatureCard
-                key={item.title}
-                title={item.title}
-                description={item.description}
-              />
+          <div
+            className="reveal"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(248px, 1fr))",
+              gap: 18,
+              marginTop: 28,
+            }}
+          >
+            {highlights.map((h) => (
+              <div className="feat-card" key={h.title}>
+                <h3>{h.title}</h3>
+                <p>{h.description}</p>
+              </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      <section
-        aria-labelledby="comparison-heading"
-        className="border-b border-border-soft bg-surface/40"
-      >
-        <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            The honest version
-          </p>
-          <h2
-            id="comparison-heading"
-            className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
+          <div className="section-head reveal" style={{ marginTop: 80 }}>
+            <span className="eyebrow">The honest version</span>
+            <h2>What about OpenClaw and Hermes Agent?</h2>
+          </div>
+          <div
+            className="compare reveal"
+            style={{ maxWidth: 760, marginTop: 28 }}
           >
-            What about OpenClaw and Hermes Agent?
-          </h2>
-          <p className="text-base leading-relaxed text-muted">
-            They&apos;re excellent. <strong className="text-fg">OpenClaw</strong>{" "}
-            and <strong className="text-fg">Hermes Agent</strong> are first-class
-            always-on, open-source agents. If you want a batteries-included
-            platform that ships ready to run, you should look hard at them —
-            this page won&apos;t pretend otherwise.
-          </p>
-          <p className="text-base leading-relaxed text-muted">
-            remote-pi makes a different bet. It starts from Pi — a lightweight
-            coding agent — and adds just the always-on layer: a supervisor that
-            keeps it running and a phone that drives it. Everything else, you
-            assemble. The trade is real: less out of the box, more that&apos;s
-            exactly yours.
-          </p>
+            <p className="sub">
+              They&apos;re excellent. <strong>OpenClaw</strong> and{" "}
+              <strong>Hermes Agent</strong> are first-class always-on,
+              open-source agents. If you want a batteries-included platform that
+              ships ready to run, you should look hard at them — this page
+              won&apos;t pretend otherwise.
+            </p>
+            <p>
+              remote-pi makes a different bet. It starts from Pi — a lightweight
+              coding agent — and adds just the always-on layer: a supervisor
+              that keeps it running and a phone that drives it. Everything else,
+              you assemble. The trade is real: less out of the box, more
+              that&apos;s exactly yours.
+            </p>
+            <Callout title="The choice">
+              Want a complete, all-in-one platform, ready out of the box?
+              OpenClaw and Hermes Agent are great places to start. Want a
+              lightweight coding agent you assemble, keep alive 24/7, and
+              control from your phone? That&apos;s Pi with remote-pi.
+            </Callout>
+            <p style={{ fontSize: 14 }}>
+              One note on scope: this comparison is about the{" "}
+              <em>always-on layer</em> — remote-pi&apos;s daemon mode — not
+              coding agents in general. It&apos;s the part where keeping an agent
+              alive and reachable is the whole job, and where OpenClaw and Hermes
+              Agent shine too.
+            </p>
+          </div>
 
-          <Callout variant="note" title="The choice">
-            Want a complete, all-in-one platform, ready out of the box? OpenClaw
-            and Hermes Agent are great places to start. Want a lightweight coding
-            agent you assemble, keep alive 24/7, and control from your phone?
-            That&apos;s Pi with remote-pi.
-          </Callout>
-
-          <p className="text-sm leading-relaxed text-muted">
-            One note on scope: this comparison is about the{" "}
-            <em className="text-fg">always-on layer</em> — remote-pi&apos;s
-            daemon mode — not coding agents in general. It&apos;s the part where
-            keeping an agent alive and reachable is the whole job, and where
-            OpenClaw and Hermes Agent shine too.
-          </p>
-        </div>
-      </section>
-
-      <section aria-labelledby="why-cta-heading">
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 py-20 text-center">
-          <h2
-            id="why-cta-heading"
-            className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl"
+          <div
+            className="reveal"
+            style={{
+              textAlign: "center",
+              maxWidth: 680,
+              margin: "96px auto 0",
+              paddingBottom: 24,
+            }}
           >
-            Build yours and leave it running.
-          </h2>
-          <p className="max-w-xl text-pretty text-base leading-relaxed text-muted">
-            Add the plugin to Pi, pair your phone, and promote a folder to a
-            24/7 daemon. The how-to walks every step.
-          </p>
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <Link
-              href="/#install"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-6 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+            <span className="eyebrow">Get started</span>
+            <h2
+              style={{
+                fontFamily: "var(--ff-display)",
+                fontWeight: 600,
+                color: "var(--ink)",
+                fontSize: "clamp(28px, 4vw, 44px)",
+                letterSpacing: "-0.02em",
+                lineHeight: 1.05,
+                margin: "14px 0 0",
+              }}
             >
-              Install
-            </Link>
-            <Link
-              href="/tutorials/daemon"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-border-soft px-6 text-sm font-semibold text-fg transition-colors hover:border-fg/40"
+              Build yours and leave it running.
+            </h2>
+            <p
+              style={{
+                color: "var(--ink-soft)",
+                fontSize: 17,
+                margin: "16px auto 0",
+                maxWidth: 520,
+              }}
             >
-              Daemon how-to →
-            </Link>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-border-soft px-6 text-sm font-semibold text-fg transition-colors hover:border-fg/40"
+              Add the plugin to Pi, pair your phone, and promote a folder to a
+              24/7 daemon. The how-to walks every step.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                justifyContent: "center",
+                flexWrap: "wrap",
+                marginTop: 28,
+              }}
             >
-              View on GitHub
-            </a>
+              <Link className="btn btn-primary" href="/#install">
+                <IconDownload /> Install
+              </Link>
+              <Link className="btn btn-ghost" href="/tutorials/daemon">
+                Daemon how-to →
+              </Link>
+              <a
+                className="btn btn-ghost"
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <IconGithub /> GitHub
+              </a>
+            </div>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+      <RevealController />
+    </div>
   );
 }

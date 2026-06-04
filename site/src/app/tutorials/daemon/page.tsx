@@ -4,6 +4,7 @@ import { DocsSection, DocsSubsection, InlineCode } from "@/components/docs-shell
 import { CodeBlock } from "@/components/code-block";
 import { Callout } from "@/components/callout";
 import { Pager } from "@/components/pager";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 export const metadata: Metadata = {
   title: "Daemon mode",
@@ -13,30 +14,24 @@ export const metadata: Metadata = {
 
 export default function DaemonTutorial() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <article className="flex flex-col gap-12">
-        <header className="flex flex-col gap-3 border-b border-border-soft pb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Tutorial · 4 of 4
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-            Daemon mode
-          </h1>
-          <p className="text-base leading-relaxed text-muted">
-            So far your agents only run while a terminal is open. Daemon mode
-            keeps a folder running as a background agent that survives logout,
-            restarts on crash, and answers your phone at 3am. This is the{" "}
-            <em className="text-fg">how</em>; for the{" "}
-            <em className="text-fg">why</em> — and how it compares to all-in-one
-            platforms — see{" "}
-            <Link href="/why" className="text-accent underline">
-              Why Pi
-            </Link>
-            .
-          </p>
-        </header>
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <div className="tut">
+            <header className="page-head reveal" style={{ maxWidth: "none" }}>
+              <span className="eyebrow">Tutorial · 4 of 4</span>
+              <h1>Daemon mode</h1>
+              <p className="lede">
+                So far your agents only run while a terminal is open. Daemon
+                mode keeps a folder running as a background agent that survives
+                logout, restarts on crash, and answers your phone at 3am. This
+                is the <em>how</em>; for the <em>why</em> — and how it compares
+                to all-in-one platforms — see <Link href="/why">Why Pi</Link>.
+              </p>
+            </header>
 
-        <DocsSection id="model" title="The shape of it">
+            <article className="prose">
+              <DocsSection id="model" title="The shape of it">
           <p>
             One <strong className="text-fg">supervisor</strong> runs per
             machine. Under it sit N background agents — one per folder you
@@ -169,10 +164,15 @@ remote-pi uninstall                # remove the supervisor service (registry kep
           </p>
         </DocsSection>
 
-        <Pager
-          prev={{ href: "/tutorials/mesh-remote", label: "Remote mesh" }}
-        />
-      </article>
+            </article>
+
+            <Pager
+              prev={{ href: "/tutorials/mesh-remote", label: "Remote mesh" }}
+            />
+          </div>
+        </div>
+      </div>
+      <RevealController />
     </div>
   );
 }

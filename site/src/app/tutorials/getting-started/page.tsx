@@ -5,6 +5,7 @@ import { CodeBlock } from "@/components/code-block";
 import { InstallTabs } from "@/components/install-tabs";
 import { Callout } from "@/components/callout";
 import { Pager } from "@/components/pager";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 export const metadata: Metadata = {
   title: "Getting started",
@@ -14,24 +15,23 @@ export const metadata: Metadata = {
 
 export default function GettingStartedTutorial() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <article className="flex flex-col gap-12">
-        <header className="flex flex-col gap-3 border-b border-border-soft pb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Tutorial · 1 of 4
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-            Getting started
-          </h1>
-          <p className="text-base leading-relaxed text-muted">
-            By the end of this guide you&apos;ll have Remote Pi running on one
-            machine, your phone paired to it, and your first command sent from
-            the app — the agent runs it and the result streams back to your
-            pocket. Plan on about five minutes.
-          </p>
-        </header>
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <div className="tut">
+            <header className="page-head reveal" style={{ maxWidth: "none" }}>
+              <span className="eyebrow">Tutorial · 1 of 4</span>
+              <h1>Getting started</h1>
+              <p className="lede">
+                By the end of this guide you&apos;ll have Remote Pi running on
+                one machine, your phone paired to it, and your first command
+                sent from the app — the agent runs it and the result streams
+                back to your pocket. Plan on about five minutes.
+              </p>
+            </header>
 
-        <DocsSection id="prereqs" title="Before you start">
+            <article className="prose">
+              <DocsSection id="prereqs" title="Before you start">
           <p>You need two things:</p>
           <ul className="ml-6 list-disc space-y-2">
             <li>
@@ -193,10 +193,15 @@ export default function GettingStartedTutorial() {
           </ul>
         </DocsSection>
 
-        <Pager
-          next={{ href: "/tutorials/mesh-local", label: "Local mesh" }}
-        />
-      </article>
+            </article>
+
+            <Pager
+              next={{ href: "/tutorials/mesh-local", label: "Local mesh" }}
+            />
+          </div>
+        </div>
+      </div>
+      <RevealController />
     </div>
   );
 }

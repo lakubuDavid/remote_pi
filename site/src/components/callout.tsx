@@ -2,32 +2,24 @@ import type { ReactNode } from "react";
 
 type CalloutVariant = "note" | "warning" | "tip";
 
-const VARIANTS: Record<CalloutVariant, { border: string; label: string }> = {
-  note: { border: "border-border-soft", label: "text-fg" },
-  warning: { border: "border-accent/40", label: "text-accent" },
-  tip: { border: "border-border-soft", label: "text-accent" },
-};
-
 type CalloutProps = {
   variant?: CalloutVariant;
-  /** Lead-in shown in bold before the body, e.g. "Heads up". */
+  /** Tag shown in the callout header. Defaults to Note / Warning by variant. */
   title?: string;
   children: ReactNode;
 };
 
 /**
- * Inline heads-up box. Shared across the home (daemon caveat), the docs, and
- * the tutorials. Presentational only — no state, safe as a server component.
+ * Heads-up card. Shared across the home, the docs, and the tutorials. The
+ * `note` and `tip` variants share the accent style; `warning` is amber.
+ * Presentational only — safe as a server component.
  */
 export function Callout({ variant = "note", title, children }: CalloutProps) {
-  const styles = VARIANTS[variant];
+  const cls = variant === "warning" ? "callout warning" : "callout";
+  const tag = title ?? (variant === "warning" ? "Warning" : "Note");
   return (
-    <div
-      className={`rounded-xl border ${styles.border} bg-bg/60 px-4 py-3 text-sm leading-relaxed text-muted`}
-    >
-      {title ? (
-        <strong className={`${styles.label} font-semibold`}>{title}:</strong>
-      ) : null}{" "}
+    <div className={cls}>
+      <div className="ctag">{tag}</div>
       {children}
     </div>
   );

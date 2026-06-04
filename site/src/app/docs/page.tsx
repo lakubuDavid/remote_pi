@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  DocsShell,
   DocsSection,
   DocsSubsection,
   InlineCode,
   DocsTable,
 } from "@/components/docs-shell";
 import { CodeBlock } from "@/components/code-block";
+import { DocsToc, type TocItem } from "@/components/docs-toc";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 export const metadata: Metadata = {
   title: "Docs",
@@ -21,38 +22,95 @@ const RELAY_README_URL =
   "https://github.com/jacobaraujo7/remote_pi/blob/main/relay/README.md";
 const ISSUES_URL = "https://github.com/jacobaraujo7/remote_pi/issues";
 
+const DOCS_TOC: TocItem[] = [
+  { id: "quick-start", label: "Quick start" },
+  { id: "what-it-does", label: "What it does" },
+  { id: "install", label: "Install" },
+  { id: "using-remote-pi", label: <>Using <InlineCode>/remote-pi</InlineCode></> },
+  { id: "pairing", label: "Pairing a mobile device" },
+  { id: "quick-actions", label: "Quick actions from the phone" },
+  { id: "agent-network", label: "Agent network" },
+  { id: "daemon-mode", label: "Daemon mode" },
+  {
+    id: "relay",
+    label: "The relay",
+    sub: [
+      { id: "community-relay", label: "Community relay" },
+      { id: "self-host", label: "Self-host" },
+      { id: "point-pi", label: "Point Pi at your relay" },
+    ],
+  },
+  { id: "protocol", label: "Protocol & Security" },
+  {
+    id: "commands",
+    label: "Command reference",
+    sub: [
+      { id: "commands-local", label: "Local session" },
+      { id: "commands-daemon", label: "Daemon fleet" },
+    ],
+  },
+  { id: "config", label: "Configuration files" },
+  {
+    id: "troubleshooting",
+    label: "Troubleshooting",
+    sub: [
+      { id: "footer-stuck", label: "Stuck on pairing" },
+      { id: "timeout-mobile", label: "Mobile times out" },
+      { id: "timeout-request", label: "Reply never arrives" },
+      { id: "one-pi-per-cwd", label: "One Pi per cwd" },
+    ],
+  },
+  { id: "links", label: "Links" },
+];
+
 export default function DocsPage() {
   return (
-    <DocsShell
-      title="Remote Pi docs"
-      lastUpdated="2026-05-31"
-      sidebar={<DocsToc />}
-      intro={
-        <p>
-          This is the <strong className="text-fg">reference</strong>. Remote Pi
-          is a mesh for coding agents: agents on the same machine talk through a
-          local UDS broker, agents on different machines reach each other
-          through an open-source relay, and your phone authenticates new peers
-          and drives sessions. The first supported harness is the{" "}
-          <a className="text-accent underline" href={PI_URL} target="_blank" rel="noopener noreferrer">
-            Pi coding agent
-          </a>
-          ; <InlineCode>/remote-pi</InlineCode> wires everything up. To{" "}
-          <strong className="text-fg">learn by doing</strong>, start with the{" "}
-          <Link href="/tutorials" className="text-accent underline">
-            tutorials
-          </Link>
-          ; for <strong className="text-fg">why</strong> it works this way, see{" "}
-          <Link href="/why" className="text-accent underline">
-            Why Pi
-          </Link>
-          . The pages below are for looking things up.
-        </p>
-      }
-    >
-      {/* ── Pointers into the tutorials ─────────────────────────────────── */}
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <header className="page-head reveal">
+            <span className="eyebrow">Documentation</span>
+            <h1>Remote Pi docs</h1>
+            <div className="meta-line">
+              <span>Last updated: 2026-05-31</span>
+              <span>License: MIT</span>
+            </div>
+            <p className="lede">
+              This is the <strong className="text-fg">reference</strong>. Remote
+              Pi is a mesh for coding agents: agents on the same machine talk
+              through a local UDS broker, agents on different machines reach each
+              other through an open-source relay, and your phone authenticates
+              new peers and drives sessions. The first supported harness is the{" "}
+              <a
+                className="text-accent underline"
+                href={PI_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Pi coding agent
+              </a>
+              ; <InlineCode>/remote-pi</InlineCode> wires everything up. To{" "}
+              <strong className="text-fg">learn by doing</strong>, start with
+              the{" "}
+              <Link href="/tutorials" className="text-accent underline">
+                tutorials
+              </Link>
+              ; for <strong className="text-fg">why</strong> it works this way,
+              see{" "}
+              <Link href="/why" className="text-accent underline">
+                Why Pi
+              </Link>
+              . The pages below are for looking things up.
+            </p>
+          </header>
 
-      <DocsSection id="quick-start" title="Quick start">
+          <div className="docs-layout">
+            <DocsToc items={DOCS_TOC} />
+
+            <article className="prose docs-article">
+              {/* ── Pointers into the tutorials ─────────────────────────── */}
+
+              <DocsSection id="quick-start" title="Quick start">
         <p>
           Install the plugin, run the setup wizard, and pair your phone in a few
           commands — then send your first prompt from the app. The full
@@ -794,74 +852,11 @@ export default function DocsPage() {
         </ul>
         <p className="text-sm">License: MIT.</p>
       </DocsSection>
-    </DocsShell>
-  );
-}
-
-function DocsToc() {
-  return (
-    <nav aria-label="Table of contents" className="text-sm">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
-        On this page
-      </p>
-      <ul className="flex flex-col gap-0.5">
-        <TocItem href="#quick-start" label="Quick start" />
-        <TocItem href="#what-it-does" label="What it does" />
-        <TocItem href="#install" label="Install" />
-        <TocItem href="#using-remote-pi" label={<>Using <InlineCode>/remote-pi</InlineCode></>} />
-        <TocItem href="#pairing" label="Pairing a mobile device" />
-        <TocItem href="#quick-actions" label="Quick actions from the phone" />
-        <TocItem href="#agent-network" label="Agent network" />
-        <TocItem href="#daemon-mode" label="Daemon mode" />
-        <TocItem href="#relay" label="The relay">
-          <TocItem href="#community-relay" label="Community relay" sub />
-          <TocItem href="#self-host" label="Self-host" sub />
-          <TocItem href="#point-pi" label="Point Pi at your relay" sub />
-        </TocItem>
-        <TocItem href="#protocol" label="Protocol & Security" />
-        <TocItem href="#commands" label="Command reference">
-          <TocItem href="#commands-local" label="Local session" sub />
-          <TocItem href="#commands-daemon" label="Daemon fleet" sub />
-        </TocItem>
-        <TocItem href="#config" label="Configuration files" />
-        <TocItem href="#troubleshooting" label="Troubleshooting">
-          <TocItem href="#footer-stuck" label="Stuck on pairing" sub />
-          <TocItem href="#timeout-mobile" label="Mobile times out" sub />
-          <TocItem href="#timeout-request" label="Reply never arrives" sub />
-          <TocItem href="#one-pi-per-cwd" label="One Pi per cwd" sub />
-        </TocItem>
-        <TocItem href="#links" label="Links" />
-      </ul>
-    </nav>
-  );
-}
-
-function TocItem({
-  href,
-  label,
-  sub,
-  children,
-}: {
-  href: string;
-  label: React.ReactNode;
-  sub?: boolean;
-  children?: React.ReactNode;
-}) {
-  return (
-    <li>
-      <a
-        href={href}
-        className={
-          sub
-            ? "block rounded py-1 pl-3 text-[13px] text-muted transition-colors hover:text-fg"
-            : "block rounded py-1 font-medium text-fg transition-colors hover:text-accent"
-        }
-      >
-        {label}
-      </a>
-      {children ? (
-        <ul className="ml-2 border-l border-border-soft/70 pl-1">{children}</ul>
-      ) : null}
-    </li>
+            </article>
+          </div>
+        </div>
+      </div>
+      <RevealController />
+    </div>
   );
 }

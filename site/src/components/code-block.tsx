@@ -1,21 +1,55 @@
+"use client";
+
+import { useState } from "react";
+import { IconCopy, IconCheck } from "@/components/landing/icons";
+
 type CodeBlockProps = {
   code: string;
   label?: string;
+  /** Kept for call-site compatibility; shown next to the label when present. */
   language?: string;
+  /** Show a leading `$` prompt. Defaults to false (most snippets aren't shell). */
+  prompt?: boolean;
 };
 
-export function CodeBlock({ code, label, language }: CodeBlockProps) {
+/**
+ * Terminal-style code block: macOS lights, a label, a copy button, and a
+ * monospace body. Shared across docs and tutorials; matches the home install
+ * terminal so the whole site reads as one product.
+ */
+export function CodeBlock({ code, label, language, prompt = false }: CodeBlockProps) {
+  const [copied, setCopied] = useState(false);
+  const tlabel = [label, language].filter(Boolean).join(" — ");
+
+  const copy = () => {
+    if (navigator.clipboard) navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border-soft bg-surface">
-      {label ? (
-        <div className="flex items-center justify-between border-b border-border-soft px-4 py-2 text-xs uppercase tracking-wider text-muted">
-          <span>{label}</span>
-          {language ? <span className="text-muted/70">{language}</span> : null}
+    <div className="terminal">
+      <div className="term-bar">
+        <span className="lights">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="tlabel">{tlabel}</span>
+        <button
+          type="button"
+          className={`copy-btn ${copied ? "copied" : ""}`}
+          onClick={copy}
+        >
+          {copied ? <IconCheck /> : <IconCopy />} {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <div className="term-body">
+        <div className="term-line">
+          {prompt ? <span className="pr">$</span> : null}
+          <pre className="cmd">{code}</pre>
         </div>
-      ) : null}
-      <pre className="overflow-x-auto px-4 py-4 font-mono text-sm leading-relaxed text-fg">
-        <code>{code}</code>
-      </pre>
+      </div>
     </div>
   );
 }

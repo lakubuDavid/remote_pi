@@ -7,23 +7,41 @@ type LegalShellProps = {
   children: ReactNode;
 };
 
-export function LegalShell({ title, lastUpdated, subtitle, children }: LegalShellProps) {
+export function LegalShell({
+  title,
+  lastUpdated,
+  subtitle,
+  children,
+}: LegalShellProps) {
   return (
-    <article className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <header className="mb-12 flex flex-col gap-3 border-b border-border-soft pb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-          Legal
-        </p>
-        <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-          {title}
-        </h1>
-        <p className="text-sm text-muted">Last updated: {lastUpdated}</p>
-        {subtitle ? (
-          <div className="text-sm leading-relaxed text-muted">{subtitle}</div>
-        ) : null}
-      </header>
-      <div className="legal-prose flex flex-col gap-10">{children}</div>
-    </article>
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <div className="legal">
+            <header className="page-head" style={{ maxWidth: "none" }}>
+              <span className="eyebrow">Legal</span>
+              <h1>{title}</h1>
+              <div className="meta-line">
+                <span>Last updated: {lastUpdated}</span>
+              </div>
+              {subtitle ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    color: "var(--ink-soft)",
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                  }}
+                >
+                  {subtitle}
+                </div>
+              ) : null}
+            </header>
+            <div className="legal-body">{children}</div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -36,13 +54,11 @@ type SectionProps = {
 
 export function LegalSection({ id, number, title, children }: SectionProps) {
   return (
-    <section id={id} className="flex flex-col gap-3 scroll-mt-24">
-      <h2 className="text-xl font-semibold tracking-tight text-fg sm:text-2xl">
+    <section id={id}>
+      <h2>
         {number}. {title}
       </h2>
-      <div className="flex flex-col gap-3 text-[15px] leading-[1.75] text-muted">
-        {children}
-      </div>
+      {children}
     </section>
   );
 }

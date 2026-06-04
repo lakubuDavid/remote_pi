@@ -4,6 +4,7 @@ import { DocsSection, DocsSubsection, InlineCode } from "@/components/docs-shell
 import { CodeBlock } from "@/components/code-block";
 import { Callout } from "@/components/callout";
 import { Pager } from "@/components/pager";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 export const metadata: Metadata = {
   title: "Claude in the mesh",
@@ -13,33 +14,35 @@ export const metadata: Metadata = {
 
 export default function ClaudeMeshTutorial() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <article className="flex flex-col gap-12">
-        <header className="flex flex-col gap-4 border-b border-border-soft pb-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-accent">
-              Extra · terminal only — no app yet
-            </span>
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Tutorial · Extra
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-            Claude in the mesh
-          </h1>
-          <p className="text-base leading-relaxed text-muted">
-            <InlineCode>remote-pi claude</InlineCode> puts{" "}
-            <strong className="text-fg">Claude Code</strong> on the same agent
-            mesh as Pi — a named peer on the local UDS broker and, through the
-            relay, across PCs. This is an advanced, agent-to-agent setup driven
-            entirely from the terminal. It is{" "}
-            <strong className="text-fg">not surfaced in the mobile app yet</strong>{" "}
-            — see <a href="#no-app" className="text-accent underline">why</a> at
-            the end.
-          </p>
-        </header>
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <div className="tut">
+            <header className="page-head reveal" style={{ maxWidth: "none" }}>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-accent">
+                  Extra · terminal only — no app yet
+                </span>
+              </div>
+              <span className="eyebrow" style={{ marginTop: 14 }}>
+                Tutorial · Extra
+              </span>
+              <h1>Claude in the mesh</h1>
+              <p className="lede">
+                <InlineCode>remote-pi claude</InlineCode> puts{" "}
+                <strong className="text-fg">Claude Code</strong> on the same
+                agent mesh as Pi — a named peer on the local UDS broker and,
+                through the relay, across PCs. This is an advanced,
+                agent-to-agent setup driven entirely from the terminal. It is{" "}
+                <strong className="text-fg">
+                  not surfaced in the mobile app yet
+                </strong>{" "}
+                — see <a href="#no-app">why</a> at the end.
+              </p>
+            </header>
 
-        <DocsSection id="prereqs" title="Before you start">
+            <article className="prose">
+              <DocsSection id="prereqs" title="Before you start">
           <ul className="ml-6 list-disc space-y-2">
             <li>
               The <InlineCode>remote-pi</InlineCode> CLI on your{" "}
@@ -251,11 +254,16 @@ Agent name [api]: reviewer`}
           </p>
         </DocsSection>
 
-        <Pager
-          prev={{ href: "/tutorials/daemon", label: "Daemon mode" }}
-          next={{ href: "/tutorials", label: "All tutorials" }}
-        />
-      </article>
+            </article>
+
+            <Pager
+              prev={{ href: "/tutorials/daemon", label: "Daemon mode" }}
+              next={{ href: "/tutorials", label: "All tutorials" }}
+            />
+          </div>
+        </div>
+      </div>
+      <RevealController />
     </div>
   );
 }

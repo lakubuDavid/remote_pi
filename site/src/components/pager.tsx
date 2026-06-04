@@ -11,40 +11,28 @@ type PagerProps = {
 };
 
 /**
- * Previous / next navigation for the tutorials section (Wave C). Either side is
- * optional; a missing side keeps the present one pinned to its edge.
+ * Previous / next navigation for the tutorials section, styled as two cards to
+ * match the home. Either side is optional; a missing side stays as an invisible
+ * placeholder so the present one keeps its column.
  */
 export function Pager({ prev, next }: PagerProps) {
   return (
-    <nav
-      aria-label="Tutorial navigation"
-      className="mt-12 flex items-stretch justify-between gap-4 border-t border-border-soft pt-6"
-    >
+    <nav aria-label="Tutorial navigation" className="pager reveal">
       {prev ? (
-        <Link
-          href={prev.href}
-          className="group flex max-w-[45%] flex-col gap-1 rounded-xl border border-border-soft bg-surface px-4 py-3 transition-colors hover:border-fg/30"
-        >
-          <span className="text-xs uppercase tracking-wider text-muted">
-            ← Previous
-          </span>
-          <span className="text-sm font-medium text-fg">{prev.label}</span>
+        <Link className="pager-card" href={prev.href}>
+          <span className="dir">← Previous</span>
+          <span className="ttl">{prev.label}</span>
         </Link>
       ) : (
-        <span />
+        <span className="pager-card empty" />
       )}
       {next ? (
-        <Link
-          href={next.href}
-          className="group flex max-w-[45%] flex-col items-end gap-1 rounded-xl border border-border-soft bg-surface px-4 py-3 text-right transition-colors hover:border-fg/30"
-        >
-          <span className="text-xs uppercase tracking-wider text-muted">
-            Next →
-          </span>
-          <span className="text-sm font-medium text-fg">{next.label}</span>
+        <Link className="pager-card next" href={next.href}>
+          <span className="dir">Next →</span>
+          <span className="ttl">{next.label}</span>
         </Link>
       ) : (
-        <span />
+        <span className="pager-card empty" />
       )}
     </nav>
   );

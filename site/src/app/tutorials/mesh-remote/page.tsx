@@ -4,6 +4,7 @@ import { DocsSection, DocsSubsection, InlineCode } from "@/components/docs-shell
 import { CodeBlock } from "@/components/code-block";
 import { Callout } from "@/components/callout";
 import { Pager } from "@/components/pager";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 const GITHUB_URL = "https://github.com/jacobaraujo7/remote_pi";
 
@@ -15,28 +16,25 @@ export const metadata: Metadata = {
 
 export default function MeshRemoteTutorial() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <article className="flex flex-col gap-12">
-        <header className="flex flex-col gap-3 border-b border-border-soft pb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Tutorial · 3 of 4
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-            Remote mesh
-          </h1>
-          <p className="text-base leading-relaxed text-muted">
-            The{" "}
-            <Link href="/tutorials/mesh-local" className="text-accent underline">
-              local mesh
-            </Link>{" "}
-            stops at one machine. Turn on the relay and the same{" "}
-            <InlineCode>agent_send</InlineCode> reaches agents on other PCs —
-            your laptop talking to your desktop, a build box, a server. The
-            tools are identical; only the addressing changes.
-          </p>
-        </header>
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <div className="tut">
+            <header className="page-head reveal" style={{ maxWidth: "none" }}>
+              <span className="eyebrow">Tutorial · 3 of 4</span>
+              <h1>Remote mesh</h1>
+              <p className="lede">
+                The{" "}
+                <Link href="/tutorials/mesh-local">local mesh</Link> stops at
+                one machine. Turn on the relay and the same{" "}
+                <InlineCode>agent_send</InlineCode> reaches agents on other PCs
+                — your laptop talking to your desktop, a build box, a server.
+                The tools are identical; only the addressing changes.
+              </p>
+            </header>
 
-        <DocsSection id="setup" title="1. Put both machines on one mesh">
+            <article className="prose">
+              <DocsSection id="setup" title="1. Put both machines on one mesh">
           <p>
             Cross-PC routing rides the relay. Every machine paired under the
             same <strong className="text-fg">Owner key</strong> forms one
@@ -190,11 +188,16 @@ export default function MeshRemoteTutorial() {
           </DocsSubsection>
         </DocsSection>
 
-        <Pager
-          prev={{ href: "/tutorials/mesh-local", label: "Local mesh" }}
-          next={{ href: "/tutorials/daemon", label: "Daemon mode" }}
-        />
-      </article>
+            </article>
+
+            <Pager
+              prev={{ href: "/tutorials/mesh-local", label: "Local mesh" }}
+              next={{ href: "/tutorials/daemon", label: "Daemon mode" }}
+            />
+          </div>
+        </div>
+      </div>
+      <RevealController />
     </div>
   );
 }

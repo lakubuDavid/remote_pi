@@ -4,6 +4,7 @@ import { DocsSection, InlineCode } from "@/components/docs-shell";
 import { CodeBlock } from "@/components/code-block";
 import { Callout } from "@/components/callout";
 import { Pager } from "@/components/pager";
+import { RevealController } from "@/components/landing/reveal-controller";
 
 export const metadata: Metadata = {
   title: "Local mesh",
@@ -13,24 +14,23 @@ export const metadata: Metadata = {
 
 export default function MeshLocalTutorial() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <article className="flex flex-col gap-12">
-        <header className="flex flex-col gap-3 border-b border-border-soft pb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Tutorial · 2 of 4
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
-            Local mesh
-          </h1>
-          <p className="text-base leading-relaxed text-muted">
-            Two agents running side by side on one machine can see each other
-            and trade messages — no network involved. Here you&apos;ll start a
-            second agent, have the first one find it, and watch a message go
-            from one to the other and back.
-          </p>
-        </header>
+    <div className="page">
+      <div className="page-body">
+        <div className="wrap">
+          <div className="tut">
+            <header className="page-head reveal" style={{ maxWidth: "none" }}>
+              <span className="eyebrow">Tutorial · 2 of 4</span>
+              <h1>Local mesh</h1>
+              <p className="lede">
+                Two agents running side by side on one machine can see each
+                other and trade messages — no network involved. Here
+                you&apos;ll start a second agent, have the first one find it,
+                and watch a message go from one to the other and back.
+              </p>
+            </header>
 
-        <DocsSection id="how" title="How local discovery works">
+            <article className="prose">
+              <DocsSection id="how" title="How local discovery works">
           <p>
             Every agent that runs <InlineCode>/remote-pi</InlineCode> on a
             machine joins the same local session, named{" "}
@@ -194,11 +194,16 @@ agent_send({
           </Callout>
         </DocsSection>
 
-        <Pager
-          prev={{ href: "/tutorials/getting-started", label: "Getting started" }}
-          next={{ href: "/tutorials/mesh-remote", label: "Remote mesh" }}
-        />
-      </article>
+            </article>
+
+            <Pager
+              prev={{ href: "/tutorials/getting-started", label: "Getting started" }}
+              next={{ href: "/tutorials/mesh-remote", label: "Remote mesh" }}
+            />
+          </div>
+        </div>
+      </div>
+      <RevealController />
     </div>
   );
 }
