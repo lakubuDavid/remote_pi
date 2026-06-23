@@ -31,7 +31,7 @@ describe("updateFooter — footer slots ('local' rendering)", () => {
     };
     updateFooter(ctx, state);
     const sessionSlot = ctx.statusCalls.find((c) => c.key === "remote-pi:session");
-    expect(sessionSlot?.value).toBe("📡 local (3)");
+    expect(sessionSlot?.value).toBe("\x1b[36m◎\x1b[0m local (3)");
   });
 
   test("session slot cleared when not joined", () => {
@@ -45,7 +45,7 @@ describe("updateFooter — footer slots ('local' rendering)", () => {
     const ctx = makeMockCtx();
     updateFooter(ctx, { session: "local", peerCount: 1, relayOn: false });
     const sessionSlot = ctx.statusCalls.find((c) => c.key === "remote-pi:session");
-    expect(sessionSlot?.value).toBe("📡 local (1)");
+    expect(sessionSlot?.value).toBe("\x1b[36m◎\x1b[0m local (1)");
   });
 });
 

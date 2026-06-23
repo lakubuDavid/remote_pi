@@ -793,7 +793,7 @@ describe("/remote-pi revoke", () => {
 
     const text = (ctx.ui.notify.mock.calls[0]![0]) as string;
     // The attached owner shows online; the un-attached one shows offline.
-    expect(text).toContain("iamthe_a — Active Phone 🟢 online");
+    expect(text).toContain("iamthe_a — Active Phone ● online");
     expect(text).toContain("idle_idl — Idle Peer ⚪ offline");
   });
 });

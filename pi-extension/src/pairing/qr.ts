@@ -113,7 +113,7 @@ export function renderQRAscii(uri: string): string {
  */
 export function displayQR(uri: string): void {
   const qrcode = renderQRAscii(uri);
-  process.stderr.write(`\n📱 Scan to pair:\n\n${qrcode}\n`);
+  process.stderr.write(`\nScan to pair:\n\n${qrcode}\n`);
 }
 
 /**

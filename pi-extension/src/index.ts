@@ -1183,7 +1183,7 @@ const extension: ExtensionFactory = (pi: ExtensionAPI): void => {
   } catch { /* best-effort init */ }
 
   // Seed the global-pairings cache from peers.json so the footer can show
-  // 🟢/🟡 correctly the moment the relay is up (no race with first refresh).
+  // ●/○ correctly the moment the relay is up (no race with first refresh).
   _refreshPairingsCache();
 
   pi.on("resources_discover", () => ({ skillPaths: [skillsDir()] }));
@@ -1584,23 +1584,23 @@ function _cmdStatus(ctx: Pick<ExtensionContext, "ui">): void {
   let meshLine: string;
   if (_meshNode) {
     const name = _meshNode.name();
-    meshLine = `🟢 Local mesh: connected as "${name}" (${_sessionPeerCount} peer${_sessionPeerCount === 1 ? "" : "s"})`;
+    meshLine = `● Local mesh: connected as "${name}" (${_sessionPeerCount} peer${_sessionPeerCount === 1 ? "" : "s"})`;
   } else {
-    meshLine = "⚪ Local mesh: not connected";
+    meshLine = "○ Local mesh: not connected";
   }
 
   // Relay line — paired state is derived from _activePeers.size now.
   let relayLine: string;
   if (_state === "idle") {
-    relayLine = `⚪ Relay: off (${relayUrl}) — run /remote-pi to start`;
+    relayLine = `○ Relay: off (${relayUrl}) — run /remote-pi to start`;
   } else if (_activePeers.size > 0) {
     const count = _activePeers.size;
     const shortids = [..._activePeers.keys()].map((k) => k.slice(0, 8)).join(", ");
-    relayLine = `🟢 Relay: ${count} owner${count === 1 ? "" : "s"} online (${shortids}) (${relayUrl})`;
+    relayLine = `● Relay: ${count} owner${count === 1 ? "" : "s"} online (${shortids}) (${relayUrl})`;
   } else {
     relayLine = _hasGlobalPairings
-      ? `🟢 Relay: on, waiting for an app to connect (${relayUrl})`
-      : `🟡 Relay: on, waiting for first pairing (${relayUrl})`;
+      ? `● Relay: on, waiting for an app to connect (${relayUrl})`
+      : `○ Relay: on, waiting for first pairing (${relayUrl})`;
   }
 
   ctx.ui.notify(`[remote-pi]\n  ${meshLine}\n  ${relayLine}`, "info");
@@ -1908,7 +1908,7 @@ async function _cmdStart(ctx: Pick<ExtensionContext, "ui" | "cwd">): Promise<voi
         _pi?.sendMessage({
           customType: "remote-pi:mesh-revoked",
           content:
-            `🔒 Revoked by Owner ${short}…\n\n` +
+            `Revoked by Owner ${short}…\n\n` +
             `The mobile app for this Owner removed this PC from the mesh. ` +
             `Re-pair via /remote-pi pair if this was unexpected.`,
           display: true,
@@ -2010,8 +2010,8 @@ async function _cmdPair(ctx: Pick<ExtensionContext, "ui" | "cwd">, args = ""): P
     _pi.sendMessage({
       customType: "remote-pi:pair-code",
       content:
-        `📱 Scan to pair:\n\n${qrAscii}\n` +
-        `📋 Or copy this pairing code (camera-less devices):\n\n${qrUri}`,
+        `Scan to pair:\n\n${qrAscii}\n` +
+        `Or copy this pairing code (camera-less devices):\n\n${qrUri}`,
       // Structured payload for RPC clients (e.g. Cockpit): render their own QR
       // from `uri` + show the expiry, without scraping the display string.
       details: { uri: qrUri, token, expiresAt, roomId, name: sessionName },
@@ -2063,7 +2063,7 @@ async function _cmdList(ctx: Pick<ExtensionContext, "ui">): Promise<void> {
   // the singleton " (active)" marker that only ever marked one peer.
   const lines = peers.map((p) => {
     const shortid = p.remote_epk.slice(0, 8);
-    const tag = _activePeers.has(p.remote_epk) ? " 🟢 online" : " ⚪ offline";
+    const tag = _activePeers.has(p.remote_epk) ? " ● online" : " ○ offline";
     return `• ${shortid} — ${p.name}${tag}`;
   }).join("\n");
   ctx.ui.notify(`[remote-pi] Paired devices:\n${lines}`, "info");
@@ -2851,13 +2851,44 @@ function _deliverMeshMessageToAgent(
     console.error(`[remote-pi] ${label}: agent session not bound yet — message dropped`);
     return;
   }
-  const header = `[agent-network] message from "${env.from}" (id=${env.id}${env.re ? `, re=${env.re}` : ""}):`;
-  const footer = env.re
-    ? "(This is a reply to a previous message of yours.)"
-    : `(If a reply is expected, call agent_send with to="${env.from}" and re="${env.id}".)`;
+
+  // Compact display: extract short sender name + type for a clean preview
+  const shortFrom = env.from.includes("@") ? env.from.split("@").pop()! : env.from;
+  const bodyObj = typeof env.body === "object" && env.body !== null ? (env.body as Record<string, unknown>) : {};
+  const msgType = (bodyObj.type as string) || "";
+  const title = (bodyObj.title as string) || "";
+  const source = (bodyObj.source as string) || "";
+  const output = (bodyObj.output as string) || "";
+
+  // Build a short preview (first 120 chars of output)
+  const preview = output.replace(/\s+/g, " ").trim().slice(0, 120);
+
+  const header = env.re
+    ? `◈ ${shortFrom} › ${title || msgType || "message"} [reply]`
+    : `◈ ${shortFrom} › ${title || msgType || "message"}`;
+
+  let compactContent = header;
+  if (preview) {
+    compactContent += `\n  ${preview}`;
+  }
+  if (env.re) {
+    compactContent += "\n  (reply)";
+  }
+
   try {
     _pi.sendMessage(
-      { customType: "remote-pi:mesh-message", content: `${header}\n${bodyText}\n\n${footer}`, display: true },
+      {
+        customType: "remote-pi:mesh-message",
+        content: compactContent,
+        display: true,
+        details: {
+          fullBody: bodyText,
+          from: env.from,
+          id: env.id,
+          re: env.re,
+          source,
+        },
+      },
       { triggerTurn: true },
     );
   } catch (err) {

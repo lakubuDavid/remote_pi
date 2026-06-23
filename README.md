@@ -1,3 +1,79 @@
+> **⚠️ Fork notice** — This is a **community fork** of the original
+> [remote-pi](https://github.com/jacobaraujo7/remote_pi) project by
+> [Jacob Moura](https://github.com/jacobaraujo7). All credit for the
+> core architecture, protocol, and mobile apps goes to the original
+> author. This fork adds new Pi extensions and tools on top of the
+> existing remote-pi mesh.
+
+---
+
+# 🔧 Changes in this fork
+
+## pi-schedule — OS-cron-backed task scheduler
+
+**New extension** that lets you schedule recurring tasks through the remote-pi
+mesh using the system's built-in `crontab` as the execution engine.
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `/schedule <text>` | Schedule a task. Include when to run it (e.g. "every 5 minutes", "daily at 9am"). If no schedule is detected, you'll be prompted. |
+| `/schedule list` | Show all scheduled tasks with human-readable frequency and next run time |
+| `/schedule remove <id>` | Remove a scheduled task |
+| `/schedule pause <id>` | Pause a task without deleting it |
+| `/schedule resume <id>` | Resume a paused task |
+
+### LLM Tools
+
+| Tool | Description |
+|---|---|
+| `schedule_task({schedule, task})` | Schedule a recurring task. `schedule` can be a cron expression or natural language. |
+| `list_schedules()` | List all scheduled tasks |
+| `remove_schedule({job_id})` | Remove a task by ID |
+| `pause_schedule({job_id})` | Pause a task |
+| `resume_schedule({job_id})` | Resume a task |
+
+### How it works
+
+```
+User: /schedule run tests every 5 minutes
+         │
+         ▼
+ pi-schedule extension
+         │
+         ├── Parses "every 5 minutes" → cron: "*/5 * * * *"
+         ├── Writes to ~/.pi/remote/schedule.json
+         ├── Writes to user's crontab:
+         │     */5 * * * * pi-notify --source cron --agent-id <name> \
+         │       -m "job:j_abc123" --type scheduled
+         │
+         └── OS cron fires → pi-notify delivers task to agent via UDS broker
+```
+
+**Requirements:** `crontab` must be installed on the system (available on
+macOS and Linux). Extension will notify you if it's not found.
+
+**Delivery:** Uses [pi-notify](https://github.com/lakubuDavid/remote_pi/tree/main/rp-s3)
+(with optional `--source` flag for attribution) — fire-and-forget, no ACK tracking.
+
+**Learn more:** [`pi-schedule/`](./pi-schedule) | [Plan/44](./plan/44-pi-schedule-extension.md)
+
+---
+
+## pi-notify — source attribution
+
+The `pi-notify` binary now supports an optional `--source` flag for attributing
+message origins:
+
+```bash
+pi-notify --source cron --agent-id davidlakubu -m "deploy complete" --type deploy
+```
+
+When omitted, `--source` defaults to `"notification"` — fully backward compatible.
+
+---
+
 <p align="center">
   <img src="branding/logo-full.svg" width="140" alt="Remote Pi logo" />
 </p>
@@ -9,13 +85,16 @@
   Pair with a one-time QR code and chat with your local agent — even when you're away from your computer.
 </p>
 
+> **Original project** by [Jacob Moura](https://github.com/jacobaraujo7) —
+> [github.com/jacobaraujo7/remote_pi](https://github.com/jacobaraujo7/remote_pi)
+
 ---
 
 ## Links
 
 - **Official site** — <https://remote-pi.jacobmoura.work>
 - **Package documentation** — <https://pi.dev/packages/remote-pi?name=remote-pi>
-- **GitHub** — <https://github.com/jacobaraujo7/remote_pi>
+- **Original repository** — <https://github.com/jacobaraujo7/remote_pi>
 
 ### Downloads
 
@@ -31,6 +110,7 @@
 |---|---|---|
 | [`app/`](./app) | Flutter (iOS / Android) | Mobile client |
 | [`pi-extension/`](./pi-extension) | Node + TypeScript | Pi extension exposing `/remote-pi` |
+| [`pi-schedule/`](./pi-schedule) | Node + TypeScript | **New** — Task scheduler extension (`/schedule`) |
 | [`relay/`](./relay) | Rust + Tokio | Stateless WebSocket relay |
 | [`site/`](./site) | NextJS | Landing page + legal pages |
 
@@ -41,71 +121,16 @@ Flutter app ──wss──► Relay (Rust) ◄──wss── Pi extension (Nod
                                                   │
                                            Local Pi process
                                                   │
-                                           UDS broker (local mesh)
+                                     ┌──── UDS broker ────┐
+                                     │  (local mesh)      │
+                                     │                    │
+                              pi-schedule         pi-notify
+                              (cron tasks)     (notifications)
                                                   │
                                            Other agents on the same machine
 ```
 
 - **Pairing** via short-lived QR code; peers persisted in Keychain (mobile) and `~/.pi/remote/` (desktop)
 - **TLS in transit** on the WebSocket connection
-- **Ed25519 pairing authentication** — only paired devices can route messages through your peer slot on the relay (challenge-response handshake)
-- **The relay forwards opaque ciphertext** as far as routing is concerned, but the payload itself is **not end-to-end encrypted in the current version** — see [`relay/README.md`](./relay/README.md) for the security trade-offs
 
-## Local agent mesh
-
-When multiple Pi agents run on the same machine, they discover each other through
-a **Unix Domain Socket broker** managed by the extension. One agent wins the
-leader election and binds the socket; the others connect as clients. After that,
-any agent can send a message or make a request to any other agent by name —
-no relay, no network, no extra config.
-
-Two LLM-facing tools are exposed in the Pi chat:
-
-- `agent_send` — fire-and-forget message to another local agent
-- `agent_request` — request/response with timeout
-
-This lets you set up local multi-agent workflows (e.g. a `backend` agent asks a
-`frontend` agent for help) entirely on your machine, in parallel with the remote
-mobile pairing.
-
-## Relay
-
-A free community relay is available at:
-
-```
-wss://relay-rp1.jacobmoura.work
-```
-
-It's enough to get started, but the relay operator can see the content of your
-messages and is a single point of trust for routing. **For sensitive work, we
-strongly recommend running your own relay** — it's a single Docker command and
-the only thing your traffic ever touches is your own infrastructure.
-
-Full security trade-offs and the self-hosting guide live in
-**[`relay/README.md`](./relay/README.md)**.
-
-## Getting started
-
-Install the Pi extension in any project where Pi runs:
-
-```bash
-pi install npm:remote-pi
-```
-
-Then in the Pi chat, run:
-
-```
-/remote-pi
-```
-
-The setup wizard walks you through agent name, session name, and relay choice,
-then prints a QR code. Scan it with the Remote Pi mobile app and you're paired.
-
-## Status
-
-The MVP is functional. Planning notes and roadmap live in [`plan/`](./plan).
-
-## License
-
-License is per-package — see each subproject's `LICENSE` file (the `pi-extension`
-is MIT). A repository-wide license decision is pending.
+[92 more lines in file. Use offset=174 to continue.]

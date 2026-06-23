@@ -1,0 +1,61 @@
+{
+  "name": "pi-schedule",
+  "version": "0.1.0",
+  "description": "Task scheduler extension for the Pi coding agent — schedule tasks via cron through the remote-pi mesh",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "pi-coding-agent",
+    "schedule",
+    "cron",
+    "task-scheduler",
+    "remote-pi",
+    "agent-mesh"
+  ],
+  "pi": {
+    "extensions": [
+      "./dist"
+    ],
+    "image": "https://raw.githubusercontent.com/lakubuDavid/remote_pi/main/pi-schedule/banner.png"
+  },
+  "author": "David Lakubu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lakubuDavid/remote_pi.git",
+    "directory": "pi-schedule"
+  },
+  "bugs": {
+    "url": "https://github.com/lakubuDavid/remote_pi/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.78.0",
+    "croner": "^10.0.1",
+    "cronstrue": "^2.50.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "tsx": "^4.22.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  }
+}

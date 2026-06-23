@@ -5,6 +5,7 @@ import type { BrokerRemote } from "./broker_remote.js";
 import type { PiForwardClient } from "../transport/pi_forward_client.js";
 import { RelayClient } from "../transport/relay_client.js";
 import { attachCrossPcBridge } from "./bridge.js";
+import { GoBrokerAdapter } from "./go_broker_adapter.js";
 import { getOrCreateEd25519Keypair } from "../pairing/storage.js";
 import type { Ed25519Keypair } from "./../pairing/crypto.js";
 import { roomIdFor } from "../rooms.js";
@@ -169,9 +170,16 @@ export class MeshNode {
 
   private async _maybeBridge(): Promise<void> {
     if (this.brokerRemote) return;
-    if (this.peer_.currentRole() !== "leader") return;
-    const broker: Broker | null = this.peer_.localBroker();
-    if (!broker) return;
+
+    // With pi-broker, every peer can bridge (no leader election).
+    // If there's no TypeScript Broker, use the GoBrokerAdapter.
+    let broker: Broker | null = this.peer_.localBroker();
+    if (!broker) {
+      const adapter = new GoBrokerAdapter();
+      adapter.attach(this.peer_);
+      broker = adapter as unknown as Broker;
+    }
+
     const params = this.bridgeParams;
     if (!params) return;
 
